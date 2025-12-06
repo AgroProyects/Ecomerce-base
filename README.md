@@ -1,0 +1,247 @@
+# E-Commerce Flexible - Plataforma Reutilizable
+
+Una plataforma de e-commerce **flexible, modular y escalable** construida con las mejores prácticas del desarrollo moderno. Diseñada para servir como base para múltiples tipos de tiendas online (ropa, tecnología, ferretería, bazar, etc.).
+
+## Stack Tecnológico
+
+- **Next.js 16** - App Router, Server Actions, RSC
+- **React 19** - Última versión con nuevas características
+- **TypeScript 5** - Tipado estricto
+- **Supabase** - PostgreSQL + Auth + Storage
+- **NextAuth** - Autenticación del panel admin
+- **TanStack Query** - Manejo de cache y estado servidor
+- **Tailwind CSS v4** - Estilos utilitarios
+- **Zod** - Validación de esquemas
+- **Zustand** - Estado global (carrito)
+- **Mercado Pago** - Checkout Pro + Webhooks
+
+## Características
+
+### Tienda Pública
+- Catálogo de productos con variantes (tallas, colores, etc.)
+- Sistema de categorías con subcategorías
+- Carrito persistente en localStorage
+- Checkout integrado con Mercado Pago
+- Páginas de éxito/error/pendiente
+- SEO optimizado
+- Diseño responsive
+
+### Panel Administrativo
+- Dashboard con métricas de ventas
+- CRUD completo de productos
+- Gestión de variantes y stock
+- Gestión de categorías jerárquicas
+- Visualización y gestión de pedidos
+- Configuración de la tienda (colores, logo, contacto)
+- Gestión de banners promocionales
+
+### Arquitectura
+- Separación clara de responsabilidades
+- Server Actions para mutaciones
+- API Routes para webhooks externos
+- Componentes UI reutilizables
+- Tipado completo con TypeScript
+- Validación con Zod en todas las entradas
+- Preparado para multi-tenant
+
+## Inicio Rápido
+
+### 1. Clonar el repositorio
+
+```bash
+git clone https://github.com/AgroProyects/Ecomerce-base.git
+cd Ecomerce-base
+```
+
+### 2. Instalar dependencias
+
+```bash
+npm install
+```
+
+### 3. Configurar variables de entorno
+
+```bash
+cp .env.example .env.local
+```
+
+Edita `.env.local` con tus credenciales:
+
+```env
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
+
+# NextAuth
+NEXTAUTH_SECRET=tu-secreto-aqui
+NEXTAUTH_URL=http://localhost:3000
+
+# Mercado Pago
+MP_ACCESS_TOKEN=TEST-xxx
+NEXT_PUBLIC_MP_PUBLIC_KEY=TEST-xxx
+
+# App
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+### 4. Configurar Supabase
+
+1. Crea un proyecto en [supabase.com](https://supabase.com)
+2. Ve a SQL Editor y ejecuta el contenido de `supabase/migrations/001_initial_schema.sql`
+3. Crea un usuario admin en Authentication > Users
+4. (Opcional) Configura Storage para imágenes
+
+### 5. Configurar Mercado Pago
+
+1. Crea una cuenta en [mercadopago.com.ar/developers](https://www.mercadopago.com.ar/developers)
+2. Obtén tus credenciales de prueba (sandbox)
+3. Configura el webhook: `https://tu-dominio.com/api/webhooks/mercadopago`
+
+### 6. Iniciar el servidor de desarrollo
+
+```bash
+npm run dev
+```
+
+Visita:
+- **Tienda**: http://localhost:3000
+- **Admin**: http://localhost:3000/admin/dashboard
+- **Login**: http://localhost:3000/login
+
+## Estructura del Proyecto
+
+```
+├── app/
+│   ├── (auth)/          # Páginas de autenticación
+│   │   └── login/
+│   ├── (store)/         # Tienda pública
+│   │   ├── products/
+│   │   ├── category/
+│   │   ├── cart/
+│   │   └── checkout/
+│   ├── (admin)/         # Panel administrativo
+│   │   └── admin/
+│   │       ├── dashboard/
+│   │       ├── products/
+│   │       ├── categories/
+│   │       ├── orders/
+│   │       ├── settings/
+│   │       └── analytics/
+│   └── api/             # API Routes
+│       ├── auth/
+│       └── webhooks/
+├── components/
+│   ├── ui/              # Componentes base (Button, Input, etc.)
+│   ├── store/           # Componentes de tienda
+│   ├── layout/          # Header, Footer, CartDrawer
+│   └── providers/       # Context providers
+├── actions/             # Server Actions
+│   ├── products/
+│   ├── categories/
+│   ├── orders/
+│   ├── checkout/
+│   └── settings/
+├── hooks/               # Custom React Hooks
+├── lib/                 # Utilidades y clientes
+│   ├── supabase/
+│   ├── mercadopago/
+│   ├── auth/
+│   ├── utils/
+│   └── constants/
+├── types/               # TypeScript types
+├── schemas/             # Zod schemas
+├── supabase/            # Migraciones SQL
+└── docs/                # Documentación adicional
+```
+
+## Modelo de Datos
+
+### Tablas principales:
+- `products` - Catálogo de productos con metadata flexible
+- `product_variants` - Variantes (tallas, colores, atributos JSON)
+- `categories` - Categorías jerárquicas (parent_id)
+- `orders` - Pedidos con integración MP
+- `order_items` - Items de cada pedido
+- `store_settings` - Configuración de la tienda
+- `banners` - Banners promocionales con posiciones
+- `users` - Usuarios administradores con roles
+
+## Flujo de Checkout
+
+```
+1. Usuario agrega productos al carrito (Zustand + localStorage)
+2. Completa formulario de checkout (validado con Zod)
+3. Server Action crea la orden en BD (status: pending)
+4. Se genera preferencia de Mercado Pago
+5. Usuario es redirigido a MP para pagar
+6. MP notifica via webhook el resultado
+7. Se actualiza el estado de la orden
+8. Se descuenta stock si el pago fue exitoso
+9. Usuario ve página de éxito/error/pendiente
+```
+
+## Personalización
+
+### Agregar nuevos campos a productos
+
+1. Modificar el schema en `supabase/migrations/`
+2. Actualizar tipos en `types/database.ts`
+3. Actualizar schema Zod en `schemas/product.schema.ts`
+4. Actualizar Server Actions
+5. Actualizar componentes UI
+
+### Cambiar colores/tema
+
+Edita la configuración de la tienda en el panel admin (`/admin/settings`) o directamente en la tabla `store_settings`.
+
+### Agregar métodos de pago
+
+El sistema está preparado para agregar otros providers. Crea nuevos archivos en `lib/` para cada provider y modifica el checkout.
+
+## Preparación para Multi-tenant
+
+El sistema está diseñado para escalar a multi-tenant:
+
+1. **Subdominio por tienda**: Middleware detecta subdominio
+2. **store_id en tablas**: Agregar columna a todas las tablas
+3. **RLS por tienda**: Policies de Supabase filtran por store_id
+4. **Base de datos por tienda**: Alternativa para mayor aislamiento
+
+## Deploy
+
+### Vercel (Recomendado)
+
+1. Conecta tu repositorio a Vercel
+2. Configura las variables de entorno
+3. Deploy automático con cada push
+
+### Variables en producción
+
+```env
+NEXTAUTH_URL=https://tu-dominio.com
+NEXT_PUBLIC_APP_URL=https://tu-dominio.com
+MP_ACCESS_TOKEN=APP-xxx  # Producción, no TEST
+```
+
+## Scripts
+
+```bash
+npm run dev      # Desarrollo
+npm run build    # Build producción
+npm run start    # Iniciar producción
+npm run lint     # Linter
+```
+
+## Documentación Adicional
+
+- [Arquitectura detallada](./docs/ARCHITECTURE.md)
+- [Esquema de base de datos](./supabase/migrations/001_initial_schema.sql)
+
+## Licencia
+
+MIT
+
+---
+
+Desarrollado como plantilla base para e-commerce flexibles y escalables.
