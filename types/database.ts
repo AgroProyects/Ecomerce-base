@@ -321,8 +321,11 @@ export interface Database {
           id: string
           email: string
           name: string | null
-          role: 'super_admin' | 'admin' | 'editor' | 'viewer'
+          role: 'super_admin' | 'admin' | 'editor' | 'viewer' | 'customer'
           avatar_url: string | null
+          phone: string | null
+          birth_date: string | null
+          dni: string | null
           is_active: boolean
           created_at: string
           updated_at: string
@@ -331,8 +334,11 @@ export interface Database {
           id: string
           email: string
           name?: string | null
-          role?: 'super_admin' | 'admin' | 'editor' | 'viewer'
+          role?: 'super_admin' | 'admin' | 'editor' | 'viewer' | 'customer'
           avatar_url?: string | null
+          phone?: string | null
+          birth_date?: string | null
+          dni?: string | null
           is_active?: boolean
           created_at?: string
           updated_at?: string
@@ -341,13 +347,140 @@ export interface Database {
           id?: string
           email?: string
           name?: string | null
-          role?: 'super_admin' | 'admin' | 'editor' | 'viewer'
+          role?: 'super_admin' | 'admin' | 'editor' | 'viewer' | 'customer'
           avatar_url?: string | null
+          phone?: string | null
+          birth_date?: string | null
+          dni?: string | null
           is_active?: boolean
           created_at?: string
           updated_at?: string
         }
         Relationships: []
+      }
+      customer_addresses: {
+        Row: {
+          id: string
+          user_id: string
+          label: string
+          recipient_name: string
+          phone: string | null
+          street: string
+          number: string
+          floor: string | null
+          apartment: string | null
+          city: string
+          state: string
+          postal_code: string
+          country: string
+          additional_info: string | null
+          is_default: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          label?: string
+          recipient_name: string
+          phone?: string | null
+          street: string
+          number: string
+          floor?: string | null
+          apartment?: string | null
+          city: string
+          state: string
+          postal_code: string
+          country?: string
+          additional_info?: string | null
+          is_default?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          label?: string
+          recipient_name?: string
+          phone?: string | null
+          street?: string
+          number?: string
+          floor?: string | null
+          apartment?: string | null
+          city?: string
+          state?: string
+          postal_code?: string
+          country?: string
+          additional_info?: string | null
+          is_default?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_addresses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      customer_payment_methods: {
+        Row: {
+          id: string
+          user_id: string
+          type: string
+          label: string
+          provider: string | null
+          last_four: string | null
+          expiry_month: number | null
+          expiry_year: number | null
+          mp_customer_id: string | null
+          mp_card_id: string | null
+          is_default: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          type: string
+          label: string
+          provider?: string | null
+          last_four?: string | null
+          expiry_month?: number | null
+          expiry_year?: number | null
+          mp_customer_id?: string | null
+          mp_card_id?: string | null
+          is_default?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          type?: string
+          label?: string
+          provider?: string | null
+          last_four?: string | null
+          expiry_month?: number | null
+          expiry_year?: number | null
+          mp_customer_id?: string | null
+          mp_card_id?: string | null
+          is_default?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_payment_methods_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       store_settings: {
         Row: {
@@ -469,6 +602,124 @@ export interface Database {
         }
         Relationships: []
       }
+      coupons: {
+        Row: {
+          id: string
+          code: string
+          description: string | null
+          discount_type: 'percentage' | 'fixed'
+          discount_value: number
+          min_purchase_amount: number
+          max_discount_amount: number | null
+          usage_limit: number | null
+          usage_count: number
+          usage_limit_per_user: number
+          is_active: boolean
+          starts_at: string | null
+          expires_at: string | null
+          applicable_categories: string[] | null
+          applicable_products: string[] | null
+          excluded_products: string[] | null
+          first_purchase_only: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          code: string
+          description?: string | null
+          discount_type?: 'percentage' | 'fixed'
+          discount_value: number
+          min_purchase_amount?: number
+          max_discount_amount?: number | null
+          usage_limit?: number | null
+          usage_count?: number
+          usage_limit_per_user?: number
+          is_active?: boolean
+          starts_at?: string | null
+          expires_at?: string | null
+          applicable_categories?: string[] | null
+          applicable_products?: string[] | null
+          excluded_products?: string[] | null
+          first_purchase_only?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          code?: string
+          description?: string | null
+          discount_type?: 'percentage' | 'fixed'
+          discount_value?: number
+          min_purchase_amount?: number
+          max_discount_amount?: number | null
+          usage_limit?: number | null
+          usage_count?: number
+          usage_limit_per_user?: number
+          is_active?: boolean
+          starts_at?: string | null
+          expires_at?: string | null
+          applicable_categories?: string[] | null
+          applicable_products?: string[] | null
+          excluded_products?: string[] | null
+          first_purchase_only?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      coupon_usages: {
+        Row: {
+          id: string
+          coupon_id: string
+          user_id: string | null
+          user_email: string
+          order_id: string | null
+          discount_applied: number
+          used_at: string
+        }
+        Insert: {
+          id?: string
+          coupon_id: string
+          user_id?: string | null
+          user_email: string
+          order_id?: string | null
+          discount_applied: number
+          used_at?: string
+        }
+        Update: {
+          id?: string
+          coupon_id?: string
+          user_id?: string | null
+          user_email?: string
+          order_id?: string | null
+          discount_applied?: number
+          used_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_usages_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_usages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_usages_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -495,8 +746,9 @@ export interface Database {
     }
     Enums: {
       order_status: 'pending' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
-      user_role: 'super_admin' | 'admin' | 'editor' | 'viewer'
+      user_role: 'super_admin' | 'admin' | 'editor' | 'viewer' | 'customer'
       banner_position: 'hero' | 'secondary' | 'footer' | 'popup'
+      discount_type: 'percentage' | 'fixed'
     }
     CompositeTypes: {
       [_ in never]: never
@@ -518,3 +770,5 @@ export type OrderItem = Tables<'order_items'>
 export type User = Tables<'users'>
 export type StoreSettings = Tables<'store_settings'>
 export type Banner = Tables<'banners'>
+export type Coupon = Tables<'coupons'>
+export type CouponUsage = Tables<'coupon_usages'>

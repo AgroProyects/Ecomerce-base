@@ -5,6 +5,21 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import type { CartStore, CartItem } from '@/types/cart'
 import { v4 as uuid } from 'uuid'
 
+export interface AppliedCoupon {
+  id: string
+  code: string
+  description: string | null
+  discountType: 'percentage' | 'fixed'
+  discountValue: number
+  discountAmount: number
+}
+
+interface CartStoreWithCoupon extends CartStore {
+  appliedCoupon: AppliedCoupon | null
+  applyCoupon: (coupon: AppliedCoupon) => void
+  removeCoupon: () => void
+}
+
 const initialState = {
   items: [],
   itemsCount: 0,
@@ -14,26 +29,46 @@ const initialState = {
   total: 0,
   isOpen: false,
   isLoading: false,
+  appliedCoupon: null,
 }
 
-function calculateTotals(items: CartItem[]) {
+function calculateTotals(items: CartItem[], coupon: AppliedCoupon | null = null) {
   const itemsCount = items.reduce((acc, item) => acc + item.quantity, 0)
   const subtotal = items.reduce((acc, item) => acc + item.totalPrice, 0)
+
+  let discount = 0
+  if (coupon) {
+    if (coupon.discountType === 'percentage') {
+      discount = subtotal * (coupon.discountValue / 100)
+    } else {
+      discount = coupon.discountValue
+    }
+    // Aplicar límite si existe
+    if (coupon.discountAmount && discount > coupon.discountAmount) {
+      discount = coupon.discountAmount
+    }
+    // El descuento no puede ser mayor que el subtotal
+    if (discount > subtotal) {
+      discount = subtotal
+    }
+  }
 
   return {
     itemsCount,
     subtotal,
-    total: subtotal, // Se puede agregar shipping y descuentos aquí
+    discount,
+    total: subtotal - discount,
   }
 }
 
-export const useCartStore = create<CartStore>()(
+export const useCartStore = create<CartStoreWithCoupon>()(
   persist(
     (set, get) => ({
       ...initialState,
 
       addItem: (product, variant, quantity = 1) => {
         const items = get().items
+        const coupon = get().appliedCoupon
         const unitPrice = variant?.price_override ?? product.price
 
         // Verificar si el item ya existe
@@ -70,7 +105,7 @@ export const useCartStore = create<CartStore>()(
           newItems = [...items, newItem]
         }
 
-        const totals = calculateTotals(newItems)
+        const totals = calculateTotals(newItems, coupon)
         set({ items: newItems, ...totals })
       },
 
@@ -80,6 +115,7 @@ export const useCartStore = create<CartStore>()(
           return
         }
 
+        const coupon = get().appliedCoupon
         const items = get().items.map((item) =>
           item.id === itemId
             ? {
@@ -90,18 +126,31 @@ export const useCartStore = create<CartStore>()(
             : item
         )
 
-        const totals = calculateTotals(items)
+        const totals = calculateTotals(items, coupon)
         set({ items, ...totals })
       },
 
       removeItem: (itemId) => {
+        const coupon = get().appliedCoupon
         const items = get().items.filter((item) => item.id !== itemId)
-        const totals = calculateTotals(items)
+        const totals = calculateTotals(items, coupon)
         set({ items, ...totals })
       },
 
       clearCart: () => {
         set({ ...initialState })
+      },
+
+      applyCoupon: (coupon) => {
+        const items = get().items
+        const totals = calculateTotals(items, coupon)
+        set({ appliedCoupon: coupon, ...totals })
+      },
+
+      removeCoupon: () => {
+        const items = get().items
+        const totals = calculateTotals(items, null)
+        set({ appliedCoupon: null, ...totals })
       },
 
       openCart: () => set({ isOpen: true }),
@@ -118,6 +167,7 @@ export const useCartStore = create<CartStore>()(
         shippingCost: state.shippingCost,
         discount: state.discount,
         total: state.total,
+        appliedCoupon: state.appliedCoupon,
       }),
     }
   )

@@ -90,21 +90,61 @@ export function Footer({
               </li>
               <li>
                 <Link
+                  href="/favoritos"
+                  className="text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+                >
+                  Mis favoritos
+                </Link>
+              </li>
+              <li>
+                <Link
                   href={ROUTES.CART}
                   className="text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
                 >
                   Mi carrito
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/seguimiento"
+                  className="text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+                >
+                  Seguir pedido
+                </Link>
+              </li>
             </ul>
           </div>
 
-          {/* Contact */}
+          {/* Help */}
           <div>
             <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-              Contacto
+              Ayuda
             </h4>
             <ul className="mt-3 space-y-2">
+              <li>
+                <Link
+                  href="/nosotros"
+                  className="text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+                >
+                  Sobre nosotros
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/contacto"
+                  className="text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+                >
+                  Contacto
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/faq"
+                  className="text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+                >
+                  Preguntas frecuentes
+                </Link>
+              </li>
               {contactEmail && (
                 <li>
                   <a

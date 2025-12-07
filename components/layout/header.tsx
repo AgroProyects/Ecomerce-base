@@ -2,13 +2,14 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Menu, X, ShoppingCart, Search, User } from 'lucide-react'
-import { cn } from '@/lib/utils/cn'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { useCart } from '@/hooks/use-cart'
 import { ROUTES } from '@/lib/constants/routes'
 import { IMAGES } from '@/lib/constants/config'
+import { SearchDialog } from './search-dialog'
 
 interface HeaderProps {
   storeName?: string
@@ -22,7 +23,20 @@ export function Header({
   categories = [],
 }: HeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
   const { itemsCount, openCart } = useCart()
+
+  // Atajo de teclado Ctrl/Cmd + K para abrir búsqueda
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setIsSearchOpen(true)
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [])
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-zinc-200 bg-white/80 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-950/80">
@@ -66,9 +80,14 @@ export function Header({
 
           {/* Actions */}
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="hidden md:flex">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hidden md:flex"
+              onClick={() => setIsSearchOpen(true)}
+            >
               <Search className="h-5 w-5" />
-              <span className="sr-only">Buscar</span>
+              <span className="sr-only">Buscar (Ctrl+K)</span>
             </Button>
 
             <Button variant="ghost" size="icon" asChild>
@@ -114,6 +133,17 @@ export function Header({
         {isMobileMenuOpen && (
           <nav className="border-t border-zinc-200 py-4 md:hidden dark:border-zinc-800">
             <div className="flex flex-col gap-2">
+              {/* Botón de búsqueda móvil */}
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false)
+                  setIsSearchOpen(true)
+                }}
+                className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-100 dark:text-zinc-50 dark:hover:bg-zinc-800"
+              >
+                <Search className="h-4 w-4" />
+                Buscar productos
+              </button>
               <Link
                 href={ROUTES.PRODUCTS}
                 className="rounded-md px-3 py-2 text-sm font-medium text-zinc-900 hover:bg-zinc-100 dark:text-zinc-50 dark:hover:bg-zinc-800"
@@ -135,6 +165,9 @@ export function Header({
           </nav>
         )}
       </div>
+
+      {/* Search Dialog */}
+      <SearchDialog isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </header>
   )
 }

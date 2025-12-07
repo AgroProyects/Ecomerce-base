@@ -2,15 +2,18 @@
 
 import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { signIn } from 'next-auth/react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, Store } from 'lucide-react'
+import { Loader2, User } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { GoogleButton } from '@/components/auth/google-button'
+import { Separator } from '@/components/ui/separator'
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -22,7 +25,7 @@ type LoginFormData = z.infer<typeof loginSchema>
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const callbackUrl = searchParams.get('callbackUrl') || '/admin/dashboard'
+  const callbackUrl = searchParams.get('callbackUrl') || '/mi-cuenta'
   const [isLoading, setIsLoading] = useState(false)
 
   const {
@@ -37,14 +40,11 @@ function LoginForm() {
     setIsLoading(true)
 
     try {
-      console.log('Attempting signIn...')
       const result = await signIn('credentials', {
         email: data.email,
         password: data.password,
         redirect: false,
       })
-
-      console.log('SignIn result:', result)
 
       if (!result) {
         toast.error('Error de conexión')
@@ -52,7 +52,6 @@ function LoginForm() {
       }
 
       if (result.error) {
-        // NextAuth returns "CredentialsSignin" for generic errors
         const errorMessage = result.error === 'CredentialsSignin'
           ? 'Email o contraseña incorrectos'
           : result.error
@@ -80,19 +79,32 @@ function LoginForm() {
     <Card className="w-full max-w-md">
       <CardHeader className="text-center">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-900 dark:bg-zinc-50">
-          <Store className="h-6 w-6 text-white dark:text-zinc-900" />
+          <User className="h-6 w-6 text-white dark:text-zinc-900" />
         </div>
-        <CardTitle className="text-2xl">Panel de Administración</CardTitle>
+        <CardTitle className="text-2xl">Iniciá sesión</CardTitle>
         <CardDescription>
-          Ingresá tus credenciales para acceder
+          Accedé a tu cuenta para ver tus pedidos y más
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
+        <GoogleButton mode="login" />
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <Separator className="w-full" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-card px-2 text-muted-foreground">
+              O continuá con email
+            </span>
+          </div>
+        </div>
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <Input
             label="Email"
             type="email"
-            placeholder="admin@ejemplo.com"
+            placeholder="tu@email.com"
             {...register('email')}
             error={errors.email?.message}
             disabled={isLoading}
@@ -121,6 +133,14 @@ function LoginForm() {
           </Button>
         </form>
       </CardContent>
+      <CardFooter className="flex flex-col gap-4 text-center text-sm">
+        <p className="text-muted-foreground">
+          ¿No tenés cuenta?{' '}
+          <Link href="/registro" className="font-medium text-primary hover:underline">
+            Registrate
+          </Link>
+        </p>
+      </CardFooter>
     </Card>
   )
 }
@@ -130,9 +150,9 @@ function LoginSkeleton() {
     <Card className="w-full max-w-md">
       <CardHeader className="text-center">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-900 dark:bg-zinc-50">
-          <Store className="h-6 w-6 text-white dark:text-zinc-900" />
+          <User className="h-6 w-6 text-white dark:text-zinc-900" />
         </div>
-        <CardTitle className="text-2xl">Panel de Administración</CardTitle>
+        <CardTitle className="text-2xl">Iniciá sesión</CardTitle>
         <CardDescription>
           Cargando...
         </CardDescription>

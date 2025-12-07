@@ -1,9 +1,14 @@
 import NextAuth from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
+import Google from 'next-auth/providers/google'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
     Credentials({
       name: 'credentials',
       credentials: {
@@ -120,11 +125,65 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async signIn({ user, account }) {
+      // Handle Google sign in
+      if (account?.provider === 'google' && user.email) {
+        try {
+          const supabase = createAdminClient()
+
+          // Check if user exists in our table
+          const { data: existingUser } = await supabase
+            .from('users')
+            .select('*')
+            .eq('email', user.email)
+            .maybeSingle()
+
+          if (!existingUser) {
+            // Create user in our table for Google users
+            const { error } = await supabase
+              .from('users')
+              .insert({
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                avatar_url: user.image,
+                role: 'customer',
+              })
+
+            if (error) {
+              console.error('Error creating Google user:', error)
+            }
+          }
+        } catch (error) {
+          console.error('SignIn callback error:', error)
+        }
+      }
+      return true
+    },
+    async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id
-        token.role = (user as any).role
+        token.role = (user as any).role || 'customer'
       }
+
+      // For Google users, fetch role from database
+      if (account?.provider === 'google' && user?.email) {
+        try {
+          const supabase = createAdminClient()
+          const { data } = await supabase
+            .from('users')
+            .select('role')
+            .eq('email', user.email)
+            .maybeSingle()
+
+          if (data) {
+            token.role = data.role
+          }
+        } catch (error) {
+          console.error('JWT callback error:', error)
+        }
+      }
+
       return token
     },
     async session({ session, token }) {
@@ -136,8 +195,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   },
   pages: {
-    signIn: '/login',
-    error: '/login',
+    signIn: '/admin/login',
+    error: '/admin/login',
   },
   session: {
     strategy: 'jwt',

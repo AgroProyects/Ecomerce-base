@@ -11,19 +11,21 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { CartSummary } from '@/components/store/cart-summary'
-import { useCart } from '@/hooks/use-cart'
+import { useCart, useCartStore } from '@/hooks/use-cart'
 import { processCheckout } from '@/actions/checkout'
 import { checkoutFormSchema, type CheckoutFormInput } from '@/schemas/checkout.schema'
 import { ROUTES } from '@/lib/constants/routes'
 
 export default function CheckoutPage() {
   const router = useRouter()
-  const { items, itemsCount, clearCart } = useCart()
+  const { items, itemsCount, clearCart, discount } = useCart()
+  const appliedCoupon = useCartStore((state) => state.appliedCoupon)
   const [isLoading, setIsLoading] = useState(false)
 
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<CheckoutFormInput>({
     resolver: zodResolver(checkoutFormSchema),
@@ -33,6 +35,8 @@ export default function CheckoutPage() {
       },
     },
   })
+
+  const customerEmail = watch('email')
 
   if (itemsCount === 0) {
     router.push(ROUTES.CART)
@@ -50,6 +54,11 @@ export default function CheckoutPage() {
           variantId: item.variant?.id,
           quantity: item.quantity,
         })),
+        coupon: appliedCoupon ? {
+          id: appliedCoupon.id,
+          code: appliedCoupon.code,
+          discountAmount: discount,
+        } : undefined,
       })
 
       if (!result.success || !result.data) {
@@ -167,7 +176,7 @@ export default function CheckoutPage() {
           {/* Summary */}
           <div className="lg:col-span-1">
             <div className="sticky top-24">
-              <CartSummary showCheckoutButton={false} />
+              <CartSummary showCheckoutButton={false} customerEmail={customerEmail} />
               <Button
                 type="submit"
                 size="lg"

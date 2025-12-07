@@ -25,11 +25,19 @@ export const checkoutCartItemSchema = z.object({
   quantity: z.number().int().min(1),
 })
 
+export const couponInfoSchema = z.object({
+  id: z.string().uuid(),
+  code: z.string(),
+  discountAmount: z.number().min(0),
+})
+
 export const processCheckoutSchema = z.object({
   customer: checkoutFormSchema,
   items: z.array(checkoutCartItemSchema).min(1, 'El carrito está vacío'),
+  coupon: couponInfoSchema.optional(),
 })
 
 export type CheckoutFormInput = z.infer<typeof checkoutFormSchema>
 export type CheckoutCartItem = z.infer<typeof checkoutCartItemSchema>
 export type ProcessCheckoutInput = z.infer<typeof processCheckoutSchema>
+export type CouponInfo = z.infer<typeof couponInfoSchema>

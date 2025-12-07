@@ -20,7 +20,7 @@ export async function processCheckout(
       }
     }
 
-    const { customer, items } = validationResult.data
+    const { customer, items, coupon } = validationResult.data
 
     const supabase = createAdminClient()
 
@@ -150,7 +150,8 @@ export async function processCheckout(
     // Calcular totales
     const subtotal = orderItems.reduce((sum, item) => sum + item.total_price, 0)
     const shippingCost = 0 // Implementar lógica de envío
-    const total = subtotal + shippingCost
+    const discountAmount = coupon?.discountAmount || 0
+    const total = subtotal + shippingCost - discountAmount
 
     // Generar número de orden
     const { data: orderNumber } = await supabase.rpc('generate_order_number')
@@ -167,8 +168,11 @@ export async function processCheckout(
         shipping_address: customer.address,
         subtotal,
         shipping_cost: shippingCost,
+        discount_amount: discountAmount,
         total,
         notes: customer.notes,
+        coupon_id: coupon?.id || null,
+        coupon_code: coupon?.code || null,
       })
       .select()
       .single()
@@ -198,6 +202,31 @@ export async function processCheckout(
       return {
         success: false,
         error: 'Error al crear los items de la orden',
+      }
+    }
+
+    // Registrar uso del cupón si aplica
+    if (coupon) {
+      // Registrar uso
+      await supabase.from('coupon_usages').insert({
+        coupon_id: coupon.id,
+        user_email: customer.email,
+        order_id: order.id,
+        discount_applied: discountAmount,
+      })
+
+      // Incrementar contador de uso del cupón
+      const { data: currentCoupon } = await supabase
+        .from('coupons')
+        .select('usage_count')
+        .eq('id', coupon.id)
+        .single()
+
+      if (currentCoupon) {
+        await supabase
+          .from('coupons')
+          .update({ usage_count: (currentCoupon.usage_count || 0) + 1 })
+          .eq('id', coupon.id)
       }
     }
 

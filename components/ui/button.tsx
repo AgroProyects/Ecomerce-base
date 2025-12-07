@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { Slot } from '@radix-ui/react-slot'
-import { cn } from '@/lib/utils/cn'
+import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -14,7 +14,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   asChild?: boolean
 }
 
-const buttonVariants = {
+const buttonVariantsConfig = {
   base: 'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
   variants: {
     default: 'bg-zinc-900 text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200',
@@ -30,6 +30,17 @@ const buttonVariants = {
     lg: 'h-11 rounded-md px-8',
     icon: 'h-10 w-10',
   },
+}
+
+// Export for use in other components
+export function buttonVariants(options?: { variant?: keyof typeof buttonVariantsConfig.variants; size?: keyof typeof buttonVariantsConfig.sizes }) {
+  const variant = options?.variant || 'default'
+  const size = options?.size || 'default'
+  return cn(
+    buttonVariantsConfig.base,
+    buttonVariantsConfig.variants[variant],
+    buttonVariantsConfig.sizes[size]
+  )
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -56,9 +67,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       return (
         <Comp
           className={cn(
-            buttonVariants.base,
-            buttonVariants.variants[variant],
-            buttonVariants.sizes[size],
+            buttonVariantsConfig.base,
+            buttonVariantsConfig.variants[variant],
+            buttonVariantsConfig.sizes[size],
             className
           )}
           ref={ref}
@@ -72,9 +83,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         className={cn(
-          buttonVariants.base,
-          buttonVariants.variants[variant],
-          buttonVariants.sizes[size],
+          buttonVariantsConfig.base,
+          buttonVariantsConfig.variants[variant],
+          buttonVariantsConfig.sizes[size],
           className
         )}
         ref={ref}

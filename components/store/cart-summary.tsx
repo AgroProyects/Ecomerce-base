@@ -1,22 +1,75 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
+import { Loader2, Tag, X, Check } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { formatPrice } from '@/lib/utils/format'
 import { Button } from '@/components/ui/button'
-import { useCart } from '@/hooks/use-cart'
+import { Input } from '@/components/ui/input'
+import { useCart, useCartStore } from '@/hooks/use-cart'
 import { ROUTES } from '@/lib/constants/routes'
+import { toast } from 'sonner'
 
 interface CartSummaryProps {
   className?: string
   showCheckoutButton?: boolean
+  showCouponInput?: boolean
+  customerEmail?: string
 }
 
 export function CartSummary({
   className,
   showCheckoutButton = true,
+  showCouponInput = true,
+  customerEmail = '',
 }: CartSummaryProps) {
   const { subtotal, shippingCost, discount, total, itemsCount } = useCart()
+  const appliedCoupon = useCartStore((state) => state.appliedCoupon)
+  const applyCoupon = useCartStore((state) => state.applyCoupon)
+  const removeCoupon = useCartStore((state) => state.removeCoupon)
+
+  const [couponCode, setCouponCode] = useState('')
+  const [isValidating, setIsValidating] = useState(false)
+  const [couponError, setCouponError] = useState('')
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return
+
+    setIsValidating(true)
+    setCouponError('')
+
+    try {
+      const response = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: couponCode.trim(),
+          email: customerEmail || 'guest@example.com',
+          subtotal,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.valid && data.coupon) {
+        applyCoupon(data.coupon)
+        setCouponCode('')
+        toast.success('Cupón aplicado correctamente')
+      } else {
+        setCouponError(data.error || 'Cupón no válido')
+      }
+    } catch (error) {
+      setCouponError('Error al validar el cupón')
+    } finally {
+      setIsValidating(false)
+    }
+  }
+
+  const handleRemoveCoupon = () => {
+    removeCoupon()
+    toast.success('Cupón eliminado')
+  }
 
   return (
     <div
@@ -54,6 +107,58 @@ export function CartSummary({
             <span className="font-medium text-green-600">
               -{formatPrice(discount)}
             </span>
+          </div>
+        )}
+
+        {/* Cupón aplicado */}
+        {appliedCoupon && (
+          <div className="flex items-center justify-between rounded-lg bg-green-50 px-3 py-2 dark:bg-green-900/20">
+            <div className="flex items-center gap-2">
+              <Tag className="h-4 w-4 text-green-600" />
+              <span className="text-sm font-medium text-green-700 dark:text-green-400">
+                {appliedCoupon.code}
+              </span>
+              <Check className="h-4 w-4 text-green-600" />
+            </div>
+            <button
+              onClick={handleRemoveCoupon}
+              className="rounded-full p-1 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/40"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+
+        {/* Input de cupón */}
+        {showCouponInput && !appliedCoupon && (
+          <div className="border-t border-zinc-200 pt-3 dark:border-zinc-800">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Código de cupón"
+                value={couponCode}
+                onChange={(e) => {
+                  setCouponCode(e.target.value.toUpperCase())
+                  setCouponError('')
+                }}
+                onKeyDown={(e) => e.key === 'Enter' && handleApplyCoupon()}
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleApplyCoupon}
+                disabled={isValidating || !couponCode.trim()}
+              >
+                {isValidating ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  'Aplicar'
+                )}
+              </Button>
+            </div>
+            {couponError && (
+              <p className="mt-1 text-xs text-red-500">{couponError}</p>
+            )}
           </div>
         )}
 
