@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { shippingAddressSchema } from './order.schema'
+import { shippingAddressSchema, paymentMethodSchema } from './order.schema'
 
 export const checkoutFormSchema = z.object({
   email: z
@@ -17,6 +17,8 @@ export const checkoutFormSchema = z.object({
   address: shippingAddressSchema,
   notes: z.string().max(500, 'Las notas no pueden exceder 500 caracteres').optional(),
   saveInfo: z.boolean().optional(),
+  paymentMethod: paymentMethodSchema,
+  paymentProofUrl: z.string().url().nullable().optional(),
 })
 
 export const checkoutCartItemSchema = z.object({

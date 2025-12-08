@@ -53,6 +53,7 @@ export async function createVariant(
         price_override: data.price_override,
         stock: data.stock,
         attributes: data.attributes,
+        image_url: data.image_url,
         is_active: data.is_active,
         sort_order: data.sort_order,
       })

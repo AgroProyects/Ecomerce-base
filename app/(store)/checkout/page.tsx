@@ -11,21 +11,25 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { CartSummary } from '@/components/store/cart-summary'
+import { PaymentMethodSelector } from '@/components/checkout/PaymentMethodSelector'
 import { useCart, useCartStore } from '@/hooks/use-cart'
 import { processCheckout } from '@/actions/checkout'
 import { checkoutFormSchema, type CheckoutFormInput } from '@/schemas/checkout.schema'
 import { ROUTES } from '@/lib/constants/routes'
+import type { PaymentMethod } from '@/schemas/order.schema'
 
 export default function CheckoutPage() {
   const router = useRouter()
   const { items, itemsCount, clearCart, discount } = useCart()
   const appliedCoupon = useCartStore((state) => state.appliedCoupon)
   const [isLoading, setIsLoading] = useState(false)
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null)
 
   const {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<CheckoutFormInput>({
     resolver: zodResolver(checkoutFormSchema),
@@ -33,6 +37,7 @@ export default function CheckoutPage() {
       address: {
         country: 'Argentina',
       },
+      paymentMethod: 'mercadopago',
     },
   })
 
@@ -66,10 +71,19 @@ export default function CheckoutPage() {
         return
       }
 
-      // Redirect to Mercado Pago
-      if (result.data.initPoint) {
-        clearCart()
+      // Limpiar carrito
+      clearCart()
+
+      // Redirigir según método de pago
+      if (result.data.paymentMethod === 'mercadopago' && result.data.initPoint) {
+        // Mercado Pago - redirigir a checkout
         window.location.href = result.data.initPoint
+      } else if (result.data.redirectUrl) {
+        // Otros métodos - redirigir a página de instrucciones/confirmación
+        router.push(result.data.redirectUrl)
+      } else {
+        // Fallback - ir a página de éxito
+        router.push(`/checkout/success?order_id=${result.data.orderId}`)
       }
     } catch (error) {
       toast.error('Error al procesar el pago')
@@ -171,6 +185,23 @@ export default function CheckoutPage() {
                 {...register('notes')}
               />
             </div>
+
+            {/* Payment Method */}
+            <div className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
+              <PaymentMethodSelector
+                selectedMethod={selectedPaymentMethod}
+                onSelectMethod={(method) => {
+                  setSelectedPaymentMethod(method)
+                  setValue('paymentMethod', method)
+                }}
+                onPaymentProofUrl={(url) => {
+                  setValue('paymentProofUrl', url)
+                }}
+              />
+              {errors.paymentMethod && (
+                <p className="mt-2 text-sm text-red-500">{errors.paymentMethod.message}</p>
+              )}
+            </div>
           </div>
 
           {/* Summary */}
@@ -181,20 +212,38 @@ export default function CheckoutPage() {
                 type="submit"
                 size="lg"
                 className="mt-4 w-full"
-                disabled={isLoading}
+                disabled={isLoading || !selectedPaymentMethod}
               >
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Procesando...
                   </>
-                ) : (
+                ) : selectedPaymentMethod === 'mercadopago' ? (
                   'Pagar con Mercado Pago'
+                ) : selectedPaymentMethod === 'bank_transfer' ? (
+                  'Confirmar Pedido'
+                ) : selectedPaymentMethod === 'cash_on_delivery' ? (
+                  'Confirmar Pedido'
+                ) : (
+                  'Selecciona un método de pago'
                 )}
               </Button>
-              <p className="mt-2 text-center text-xs text-zinc-500">
-                Serás redirigido a Mercado Pago para completar el pago
-              </p>
+              {selectedPaymentMethod === 'mercadopago' && (
+                <p className="mt-2 text-center text-xs text-zinc-500">
+                  Serás redirigido a Mercado Pago para completar el pago
+                </p>
+              )}
+              {selectedPaymentMethod === 'bank_transfer' && (
+                <p className="mt-2 text-center text-xs text-zinc-500">
+                  Recibirás las instrucciones para realizar la transferencia
+                </p>
+              )}
+              {selectedPaymentMethod === 'cash_on_delivery' && (
+                <p className="mt-2 text-center text-xs text-zinc-500">
+                  Pagarás en efectivo cuando recibas tu pedido
+                </p>
+              )}
             </div>
           </div>
         </div>

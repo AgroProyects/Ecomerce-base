@@ -5,8 +5,12 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import {
   createOrderSchema,
   updateOrderStatusSchema,
+  uploadPaymentProofSchema,
+  updateOrderNotesSchema,
   type CreateOrderInput,
   type UpdateOrderStatusInput,
+  type UploadPaymentProofInput,
+  type UpdateOrderNotesInput,
 } from '@/schemas/order.schema'
 import type { ApiResponse } from '@/types/api'
 import type { Order } from '@/types/database'
@@ -32,28 +36,38 @@ export async function createOrder(
     const { data: orderNumberData } = await supabase
       .rpc('generate_order_number')
 
-    const orderNumber = orderNumberData || `${Date.now()}`
+    const orderNumber = orderNumberData || `ORD-${Date.now()}`
 
     // Calcular totales
     const subtotal = data.items.reduce((sum, item) => sum + item.total_price, 0)
-    const total = subtotal // Se puede agregar shipping y descuentos
+    const total = subtotal + data.shipping_cost - data.discount_amount
+
+    // Determinar estado inicial según método de pago
+    let initialStatus = 'pending'
+    if (data.payment_method === 'bank_transfer') {
+      initialStatus = 'pending_payment'
+    } else if (data.payment_method === 'cash_on_delivery') {
+      initialStatus = 'pending'
+    }
 
     // Crear la orden
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
         order_number: orderNumber,
-        status: 'pending',
+        status: initialStatus,
         customer_email: data.customer_email,
         customer_name: data.customer_name,
         customer_phone: data.customer_phone,
         shipping_address: data.shipping_address,
         billing_address: data.billing_address,
         subtotal,
-        shipping_cost: 0,
-        discount_amount: 0,
+        shipping_cost: data.shipping_cost,
+        discount_amount: data.discount_amount,
         total,
         notes: data.notes,
+        payment_method: data.payment_method,
+        payment_proof_url: data.payment_proof_url,
       })
       .select()
       .single()
@@ -89,6 +103,21 @@ export async function createOrder(
       return {
         success: false,
         error: 'Error al crear los items de la orden',
+      }
+    }
+
+    // Decrementar stock de productos/variantes
+    for (const item of data.items) {
+      if (item.variant_id) {
+        await supabase.rpc('decrement_variant_stock', {
+          p_variant_id: item.variant_id,
+          p_quantity: item.quantity,
+        })
+      } else {
+        await supabase.rpc('decrement_product_stock', {
+          p_product_id: item.product_id,
+          p_quantity: item.quantity,
+        })
       }
     }
 
@@ -196,4 +225,127 @@ export async function markOrderAsShipped(id: string): Promise<ApiResponse<Order>
 
 export async function markOrderAsDelivered(id: string): Promise<ApiResponse<Order>> {
   return updateOrderStatus({ id, status: 'delivered' })
+}
+
+/**
+ * Subir comprobante de pago para una orden
+ */
+export async function uploadPaymentProof(
+  input: UploadPaymentProofInput
+): Promise<ApiResponse<Order>> {
+  try {
+    const validationResult = uploadPaymentProofSchema.safeParse(input)
+
+    if (!validationResult.success) {
+      return {
+        success: false,
+        error: validationResult.error.issues[0].message,
+      }
+    }
+
+    const { order_id, payment_proof_url } = validationResult.data
+
+    const supabase = createAdminClient()
+
+    // Verificar que la orden exista
+    const { data: existingOrder } = await supabase
+      .from('orders')
+      .select('id, status, payment_method')
+      .eq('id', order_id)
+      .single()
+
+    if (!existingOrder) {
+      return {
+        success: false,
+        error: 'Orden no encontrada',
+      }
+    }
+
+    // Actualizar comprobante de pago
+    const { data: order, error } = await supabase
+      .from('orders')
+      .update({
+        payment_proof_url,
+        // Si estaba en pending_payment, mantener ese estado
+        // El admin deberá verificar y cambiar a 'paid' manualmente
+      })
+      .eq('id', order_id)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error uploading payment proof:', error)
+      return {
+        success: false,
+        error: 'Error al subir el comprobante de pago',
+      }
+    }
+
+    revalidatePath('/admin/orders')
+    revalidatePath(`/admin/orders/${order_id}`)
+
+    return {
+      success: true,
+      data: order as Order,
+      message: 'Comprobante de pago subido exitosamente',
+    }
+  } catch (error) {
+    console.error('Error in uploadPaymentProof:', error)
+    return {
+      success: false,
+      error: 'Error interno del servidor',
+    }
+  }
+}
+
+/**
+ * Actualizar notas administrativas de una orden
+ */
+export async function updateOrderNotes(
+  input: UpdateOrderNotesInput
+): Promise<ApiResponse<Order>> {
+  try {
+    const validationResult = updateOrderNotesSchema.safeParse(input)
+
+    if (!validationResult.success) {
+      return {
+        success: false,
+        error: validationResult.error.issues[0].message,
+      }
+    }
+
+    const { id, notes } = validationResult.data
+
+    const supabase = createAdminClient()
+
+    const { data: order, error } = await supabase
+      .from('orders')
+      .update({ admin_notes: notes })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Error updating order notes:', error)
+      return {
+        success: false,
+        error: 'Error al actualizar las notas',
+      }
+    }
+
+    revalidatePath('/admin/orders')
+    revalidatePath(`/admin/orders/${id}`)
+
+    return {
+      success: true,
+      data: order as Order,
+      message: 'Notas actualizadas exitosamente',
+    }
+  } catch (error) {
+    console.error('Error in updateOrderNotes:', error)
+    return {
+      success: false,
+      error: 'Error interno del servidor',
+    }
+  }
 }

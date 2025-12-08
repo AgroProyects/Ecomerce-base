@@ -92,24 +92,3 @@ export async function updateProduct(
     }
   }
 }
-
-export async function toggleProductStatus(
-  id: string,
-  isActive: boolean
-): Promise<ApiResponse<Product>> {
-  return updateProduct({ id, is_active: isActive })
-}
-
-export async function toggleProductFeatured(
-  id: string,
-  isFeatured: boolean
-): Promise<ApiResponse<Product>> {
-  return updateProduct({ id, is_featured: isFeatured })
-}
-
-export async function updateProductStock(
-  id: string,
-  stock: number
-): Promise<ApiResponse<Product>> {
-  return updateProduct({ id, stock })
-}

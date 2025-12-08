@@ -58,7 +58,10 @@ export interface ShippingAddress {
 export interface CheckoutResult {
   success: boolean
   orderId?: string
+  orderNumber?: string
+  paymentMethod?: 'mercadopago' | 'bank_transfer' | 'cash_on_delivery'
   preferenceId?: string
   initPoint?: string
+  redirectUrl?: string
   error?: string
 }

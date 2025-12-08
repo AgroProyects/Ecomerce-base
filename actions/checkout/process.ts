@@ -156,12 +156,18 @@ export async function processCheckout(
     // Generar número de orden
     const { data: orderNumber } = await supabase.rpc('generate_order_number')
 
+    // Determinar estado inicial según método de pago
+    let initialStatus: 'pending' | 'pending_payment' = 'pending'
+    if (customer.paymentMethod === 'bank_transfer') {
+      initialStatus = 'pending_payment'
+    }
+
     // Crear la orden
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
         order_number: orderNumber || `${Date.now()}`,
-        status: 'pending',
+        status: initialStatus,
         customer_email: customer.email,
         customer_name: customer.name,
         customer_phone: customer.phone,
@@ -173,6 +179,8 @@ export async function processCheckout(
         notes: customer.notes,
         coupon_id: coupon?.id || null,
         coupon_code: coupon?.code || null,
+        payment_method: customer.paymentMethod,
+        payment_proof_url: customer.paymentProofUrl || null,
       })
       .select()
       .single()
@@ -230,45 +238,79 @@ export async function processCheckout(
       }
     }
 
-    // Crear preferencia de Mercado Pago
-    try {
-      const preference = await createPreference({
-        orderId: order.id,
-        orderNumber: order.order_number,
-        items: cartItemsForMP,
-        customer,
-        shippingCost,
-      })
+    // Procesar según método de pago
+    if (customer.paymentMethod === 'mercadopago') {
+      // Crear preferencia de Mercado Pago
+      try {
+        const preference = await createPreference({
+          orderId: order.id,
+          orderNumber: order.order_number,
+          items: cartItemsForMP,
+          customer,
+          shippingCost,
+        })
 
-      // Actualizar orden con ID de preferencia
-      await supabase
-        .from('orders')
-        .update({ mp_preference_id: preference.id })
-        .eq('id', order.id)
+        // Actualizar orden con ID de preferencia
+        await supabase
+          .from('orders')
+          .update({ mp_preference_id: preference.id })
+          .eq('id', order.id)
 
+        return {
+          success: true,
+          data: {
+            success: true,
+            orderId: order.id,
+            orderNumber: order.order_number,
+            paymentMethod: 'mercadopago',
+            preferenceId: preference.id,
+            initPoint: preference.initPoint,
+          },
+        }
+      } catch (mpError) {
+        console.error('Error creating MP preference:', mpError)
+        // Marcar la orden como fallida pero no eliminarla
+        await supabase
+          .from('orders')
+          .update({
+            status: 'cancelled',
+            notes: 'Error al crear preferencia de pago',
+          })
+          .eq('id', order.id)
+
+        return {
+          success: false,
+          error: 'Error al procesar el pago. Por favor, intenta nuevamente.',
+        }
+      }
+    } else if (customer.paymentMethod === 'bank_transfer') {
+      // Transferencia bancaria - orden creada en estado pending_payment
       return {
         success: true,
         data: {
           success: true,
           orderId: order.id,
-          preferenceId: preference.id,
-          initPoint: preference.initPoint,
+          orderNumber: order.order_number,
+          paymentMethod: 'bank_transfer',
+          redirectUrl: `/orders/${order.id}/payment-instructions`,
         },
       }
-    } catch (mpError) {
-      console.error('Error creating MP preference:', mpError)
-      // Marcar la orden como fallida pero no eliminarla
-      await supabase
-        .from('orders')
-        .update({
-          status: 'cancelled',
-          notes: 'Error al crear preferencia de pago',
-        })
-        .eq('id', order.id)
-
+    } else if (customer.paymentMethod === 'cash_on_delivery') {
+      // Efectivo contra entrega - orden creada en estado pending
+      return {
+        success: true,
+        data: {
+          success: true,
+          orderId: order.id,
+          orderNumber: order.order_number,
+          paymentMethod: 'cash_on_delivery',
+          redirectUrl: `/orders/${order.id}/confirmation`,
+        },
+      }
+    } else {
       return {
         success: false,
-        error: 'Error al procesar el pago. Por favor, intenta nuevamente.',
+        error: 'Método de pago no válido',
       }
     }
   } catch (error) {
