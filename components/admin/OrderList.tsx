@@ -15,7 +15,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
-  Select,
+  SelectRoot,
   SelectContent,
   SelectItem,
   SelectTrigger,
@@ -90,7 +90,7 @@ export function OrderList({
         </div>
 
         {/* Filtro por estado */}
-        <Select onValueChange={onFilterStatus}>
+        <SelectRoot onValueChange={onFilterStatus}>
           <SelectTrigger className="w-full md:w-[200px]">
             <Filter className="h-4 w-4 mr-2" />
             <SelectValue placeholder="Estado" />
@@ -106,10 +106,10 @@ export function OrderList({
             <SelectItem value="cancelled">Cancelado</SelectItem>
             <SelectItem value="refunded">Reembolsado</SelectItem>
           </SelectContent>
-        </Select>
+        </SelectRoot>
 
         {/* Filtro por método de pago */}
-        <Select onValueChange={onFilterPaymentMethod}>
+        <SelectRoot onValueChange={onFilterPaymentMethod}>
           <SelectTrigger className="w-full md:w-[200px]">
             <Filter className="h-4 w-4 mr-2" />
             <SelectValue placeholder="Método de pago" />
@@ -120,7 +120,7 @@ export function OrderList({
             <SelectItem value="bank_transfer">Transferencia</SelectItem>
             <SelectItem value="cash_on_delivery">Efectivo</SelectItem>
           </SelectContent>
-        </Select>
+        </SelectRoot>
       </div>
 
       {/* Tabla de órdenes */}

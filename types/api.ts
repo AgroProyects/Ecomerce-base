@@ -33,13 +33,15 @@ export interface ProductsQueryParams {
   search?: string
   minPrice?: number
   maxPrice?: number
-  sortBy?: 'name' | 'price' | 'created_at'
+  sortBy?: 'name' | 'price' | 'created_at' | 'stock'
   sortOrder?: 'asc' | 'desc'
   isActive?: boolean
   isFeatured?: boolean
 }
 
-export type OrderStatus = 'pending' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
+export type OrderStatus = 'pending' | 'pending_payment' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
+
+export type PaymentMethod = 'mercadopago' | 'bank_transfer' | 'cash_on_delivery'
 
 export interface OrdersQueryParams {
   page?: number
@@ -48,6 +50,9 @@ export interface OrdersQueryParams {
   search?: string
   startDate?: string
   endDate?: string
+  minAmount?: number
+  maxAmount?: number
+  paymentMethod?: PaymentMethod
   sortBy?: 'created_at' | 'total' | 'order_number'
   sortOrder?: 'asc' | 'desc'
 }

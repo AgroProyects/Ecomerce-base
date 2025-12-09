@@ -129,4 +129,10 @@ export const BUCKET_CONFIGS: Record<StorageBucket, BucketConfig> = {
     fileSizeLimit: FILE_SIZE_LIMITS.DOCUMENT * 1024 * 1024,
     allowedMimeTypes: [...ALLOWED_DOCUMENT_TYPES],
   },
+  'payment-proofs': {
+    name: 'payment-proofs',
+    public: false,
+    fileSizeLimit: FILE_SIZE_LIMITS.IMAGE * 1024 * 1024,
+    allowedMimeTypes: [...ALLOWED_IMAGE_TYPES],
+  },
 };

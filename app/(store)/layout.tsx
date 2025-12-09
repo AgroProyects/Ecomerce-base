@@ -1,6 +1,7 @@
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 import { CartDrawer } from '@/components/layout/cart-drawer'
+import { PageTransition } from '@/components/layout/page-transition'
 import { getStoreSettings } from '@/actions/settings'
 import { getCategories } from '@/actions/categories'
 
@@ -23,7 +24,9 @@ export default async function StoreLayout({
         categories={categories.filter((c) => !c.parent_id).slice(0, 5)}
       />
 
-      <main className="flex-1">{children}</main>
+      <main className="flex-1">
+        <PageTransition>{children}</PageTransition>
+      </main>
 
       <Footer
         storeName={settings?.store_name}

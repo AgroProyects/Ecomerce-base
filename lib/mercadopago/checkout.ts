@@ -66,7 +66,7 @@ export async function createPreference({
         address: {
           street_name: customer.address.street,
           street_number: customer.address.number,
-          zip_code: customer.address.zipCode,
+          zip_code: customer.address.postal_code,
         },
       },
       back_urls: {

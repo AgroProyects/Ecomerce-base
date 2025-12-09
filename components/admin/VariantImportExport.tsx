@@ -47,7 +47,6 @@ export function VariantImportExport({
       'price_override',
       'stock',
       'attributes',
-      'image_url',
       'is_active',
       'sort_order',
     ];
@@ -62,7 +61,6 @@ export function VariantImportExport({
         variant.price_override?.toString() || '',
         variant.stock?.toString() || '0',
         attributesStr,
-        variant.image_url || '',
         variant.is_active ? 'true' : 'false',
         variant.sort_order?.toString() || '0',
       ];
@@ -150,7 +148,6 @@ export function VariantImportExport({
           price_override: item.price_override ? parseFloat(item.price_override) : null,
           stock: parseInt(item.stock) || 0,
           attributes,
-          image_url: item.image_url || null,
           is_active: item.is_active === 'true',
           sort_order: item.sort_order ? parseInt(item.sort_order) : index,
         };
@@ -190,7 +187,6 @@ export function VariantImportExport({
       'price_override',
       'stock',
       'attributes',
-      'image_url',
       'is_active',
       'sort_order',
     ];
@@ -201,7 +197,6 @@ export function VariantImportExport({
       '29.99',
       '100',
       '[{"name":"Talla","value":"M"},{"name":"Color","value":"Rojo"}]',
-      'https://ejemplo.com/imagen.jpg',
       'true',
       '0',
     ];

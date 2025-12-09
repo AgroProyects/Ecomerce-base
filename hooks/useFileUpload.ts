@@ -2,13 +2,13 @@
 
 import { useState, useCallback } from 'react';
 import type { StorageBucket } from '@/lib/storage/constants';
-import {
-  uploadFile,
-  uploadMultipleFiles,
-  validateFileSize,
-  validateFileType,
-  type UploadResult,
-} from '@/lib/storage';
+
+interface UploadResult {
+  success: boolean;
+  path?: string;
+  publicUrl?: string;
+  error?: string;
+}
 
 interface UseFileUploadOptions {
   bucket: StorageBucket;
@@ -16,6 +16,23 @@ interface UseFileUploadOptions {
   allowedTypes?: string[];
   onSuccess?: (result: UploadResult) => void;
   onError?: (error: string) => void;
+}
+
+// Validar tamaño de archivo
+function validateFileSize(file: File, maxSizeInMB: number): boolean {
+  const maxSizeInBytes = maxSizeInMB * 1024 * 1024;
+  return file.size <= maxSizeInBytes;
+}
+
+// Validar tipo de archivo
+function validateFileType(file: File, allowedTypes: string[]): boolean {
+  return allowedTypes.some(type => {
+    if (type.endsWith('/*')) {
+      const prefix = type.split('/')[0];
+      return file.type.startsWith(prefix + '/');
+    }
+    return file.type === type;
+  });
 }
 
 export function useFileUpload(options: UseFileUploadOptions) {
@@ -31,7 +48,7 @@ export function useFileUpload(options: UseFileUploadOptions) {
       setProgress(0);
 
       try {
-        // Validaciones
+        // Validaciones locales
         if (options.maxSize && !validateFileSize(file, options.maxSize)) {
           const errorMsg = `El archivo excede el tamaño máximo de ${options.maxSize}MB`;
           setError(errorMsg);
@@ -46,25 +63,39 @@ export function useFileUpload(options: UseFileUploadOptions) {
           return null;
         }
 
-        // Simular progreso (Supabase no proporciona progreso real en el cliente)
-        setProgress(50);
+        setProgress(30);
 
-        const result = await uploadFile({
-          bucket: options.bucket,
-          file,
+        // Usar la API route para upload (bypass RLS)
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('bucket', options.bucket);
+
+        const response = await fetch('/api/storage/upload', {
+          method: 'POST',
+          body: formData,
         });
+
+        setProgress(80);
+
+        const result = await response.json();
 
         setProgress(100);
 
         if (result.success) {
-          setUploadedFile(result);
-          options.onSuccess?.(result);
+          const uploadResult: UploadResult = {
+            success: true,
+            path: result.path,
+            publicUrl: result.publicUrl,
+          };
+          setUploadedFile(uploadResult);
+          options.onSuccess?.(uploadResult);
+          return uploadResult;
         } else {
-          setError(result.error || 'Error al subir archivo');
-          options.onError?.(result.error || 'Error al subir archivo');
+          const errorMsg = result.error || 'Error al subir archivo';
+          setError(errorMsg);
+          options.onError?.(errorMsg);
+          return { success: false, error: errorMsg };
         }
-
-        return result;
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : 'Error desconocido';
         setError(errorMsg);
@@ -97,11 +128,31 @@ export function useFileUpload(options: UseFileUploadOptions) {
           }
         }
 
-        setProgress(30);
+        setProgress(10);
 
-        const results = await uploadMultipleFiles(files, options.bucket);
+        // Subir cada archivo usando la API
+        const results: UploadResult[] = [];
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('bucket', options.bucket);
 
-        setProgress(100);
+          const response = await fetch('/api/storage/upload', {
+            method: 'POST',
+            body: formData,
+          });
+
+          const result = await response.json();
+          results.push({
+            success: result.success,
+            path: result.path,
+            publicUrl: result.publicUrl,
+            error: result.error,
+          });
+
+          setProgress(10 + ((i + 1) / files.length) * 90);
+        }
 
         // Verificar si alguno falló
         const failedUploads = results.filter(r => !r.success);

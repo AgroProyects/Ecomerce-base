@@ -169,8 +169,8 @@ export default function CheckoutPage() {
                 />
                 <Input
                   label="Código postal"
-                  {...register('address.zipCode')}
-                  error={errors.address?.zipCode?.message}
+                  {...register('address.postal_code')}
+                  error={errors.address?.postal_code?.message}
                 />
               </div>
             </div>

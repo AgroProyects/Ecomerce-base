@@ -49,12 +49,7 @@ export function usePaymentProofUpload({ orderId, onSuccess }: UsePaymentProofUpl
   });
 
   const handleFileUpload = async (file: File) => {
-    // Generar nombre único para el archivo
-    const timestamp = Date.now();
-    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const fileName = `${orderId}/${timestamp}-${sanitizedFileName}`;
-
-    await uploadToStorage(file, fileName);
+    await uploadToStorage(file);
   };
 
   return {

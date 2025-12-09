@@ -5,7 +5,7 @@ interface PriceDisplayProps {
   price: number
   comparePrice?: number | null
   className?: string
-  size?: 'sm' | 'default' | 'lg'
+  size?: 'sm' | 'default' | 'lg' | 'xl'
   showDiscount?: boolean
 }
 
@@ -34,6 +34,11 @@ export function PriceDisplay({
       price: 'text-3xl',
       compare: 'text-xl',
       discount: 'text-base',
+    },
+    xl: {
+      price: 'text-4xl',
+      compare: 'text-2xl',
+      discount: 'text-lg',
     },
   }
 

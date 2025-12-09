@@ -21,7 +21,7 @@ export function ProductDetailsWithVariants({
   const { addItem } = useCart();
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [quantity, setQuantity] = useState(1);
-  const [currentImage, setCurrentImage] = useState(product.images?.[0] || product.image_url);
+  const [currentImage, setCurrentImage] = useState(product.images?.[0] || '');
 
   const hasVariants = variants.length > 0;
 
@@ -40,13 +40,9 @@ export function ProductDetailsWithVariants({
   const handleVariantChange = (variant: ProductVariant | null) => {
     setSelectedVariant(variant);
 
-    // Cambiar imagen si la variante tiene una imagen específica
-    if (variant?.image_url) {
-      setCurrentImage(variant.image_url);
-    } else if (product.images?.[0]) {
+    // Cambiar imagen si hay imágenes del producto
+    if (product.images?.[0]) {
       setCurrentImage(product.images[0]);
-    } else {
-      setCurrentImage(product.image_url);
     }
 
     // Reset cantidad
@@ -226,12 +222,6 @@ export function ProductDetailsWithVariants({
 
         {/* Información adicional */}
         <div className="border-t pt-6 space-y-2 text-sm">
-          {product.sku && (
-            <div className="flex justify-between">
-              <span className="text-zinc-600 dark:text-zinc-400">SKU:</span>
-              <span className="font-medium">{product.sku}</span>
-            </div>
-          )}
           {selectedVariant?.sku && (
             <div className="flex justify-between">
               <span className="text-zinc-600 dark:text-zinc-400">

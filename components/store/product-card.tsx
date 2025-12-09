@@ -1,7 +1,9 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { motion } from 'framer-motion'
 import { ShoppingCart, Heart, Eye, Package } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { formatPrice, calculateDiscount } from '@/lib/utils/format'
@@ -12,6 +14,8 @@ import { useWishlist } from '@/hooks/use-wishlist'
 import { IMAGES } from '@/lib/constants/config'
 import type { Product } from '@/types/database'
 import { toast } from 'sonner'
+
+const MotionLink = motion.create(Link)
 
 interface ProductCardProps {
   product: Product
@@ -26,9 +30,16 @@ export function ProductCard({
   showAddToCart = true,
   variant = 'grid',
 }: ProductCardProps) {
+  const [mounted, setMounted] = useState(false)
   const { addItem } = useCart()
   const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlist()
-  const isWishlisted = isInWishlist(product.id)
+
+  // Evitar hidratación mismatch - solo verificar wishlist después del mount
+  const isWishlisted = mounted && isInWishlist(product.id)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const hasDiscount = product.compare_price && product.compare_price > product.price
   const discount = hasDiscount
@@ -171,12 +182,23 @@ export function ProductCard({
 
   // Default grid variant
   return (
-    <Link
+    <MotionLink
       href={`/products/${product.slug}`}
       className={cn(
-        'group relative flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white transition-all hover:shadow-xl dark:border-zinc-800 dark:bg-zinc-950',
+        'group relative flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950',
         className
       )}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{
+        y: -8,
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
+      }}
+      transition={{
+        type: 'spring',
+        stiffness: 300,
+        damping: 20,
+      }}
     >
       {/* Image */}
       <div className="relative aspect-square overflow-hidden bg-zinc-100 dark:bg-zinc-900">
@@ -211,38 +233,58 @@ export function ProductCard({
         </div>
 
         {/* Quick actions */}
-        <div className="absolute bottom-3 left-3 right-3 flex justify-center gap-2 opacity-0 transition-all duration-300 group-hover:opacity-100">
-          <Button
-            size="icon"
-            variant="secondary"
-            className={cn(
-              'h-10 w-10 rounded-full shadow-lg backdrop-blur-sm',
-              isWishlisted && 'bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600'
-            )}
-            onClick={handleToggleWishlist}
+        <motion.div
+          className="absolute bottom-3 left-3 right-3 flex justify-center gap-2"
+          initial={{ opacity: 0, y: 20 }}
+          whileHover={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <motion.div
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
           >
-            <Heart className={cn('h-5 w-5', isWishlisted && 'fill-current')} />
-            <span className="sr-only">{isWishlisted ? 'Quitar de favoritos' : 'Agregar a favoritos'}</span>
-          </Button>
-          {showAddToCart && !isOutOfStock && (
             <Button
               size="icon"
-              className="h-10 w-10 rounded-full shadow-lg backdrop-blur-sm"
-              onClick={handleAddToCart}
+              variant="secondary"
+              className={cn(
+                'h-10 w-10 rounded-full shadow-lg backdrop-blur-sm',
+                isWishlisted && 'bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600'
+              )}
+              onClick={handleToggleWishlist}
             >
-              <ShoppingCart className="h-5 w-5" />
-              <span className="sr-only">Agregar al carrito</span>
+              <Heart className={cn('h-5 w-5', isWishlisted && 'fill-current')} />
+              <span className="sr-only">{isWishlisted ? 'Quitar de favoritos' : 'Agregar a favoritos'}</span>
             </Button>
+          </motion.div>
+          {showAddToCart && !isOutOfStock && (
+            <motion.div
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Button
+                size="icon"
+                className="h-10 w-10 rounded-full shadow-lg backdrop-blur-sm"
+                onClick={handleAddToCart}
+              >
+                <ShoppingCart className="h-5 w-5" />
+                <span className="sr-only">Agregar al carrito</span>
+              </Button>
+            </motion.div>
           )}
-          <Button
-            size="icon"
-            variant="secondary"
-            className="h-10 w-10 rounded-full shadow-lg backdrop-blur-sm"
+          <motion.div
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
           >
-            <Eye className="h-5 w-5" />
-            <span className="sr-only">Ver detalles</span>
-          </Button>
-        </div>
+            <Button
+              size="icon"
+              variant="secondary"
+              className="h-10 w-10 rounded-full shadow-lg backdrop-blur-sm"
+            >
+              <Eye className="h-5 w-5" />
+              <span className="sr-only">Ver detalles</span>
+            </Button>
+          </motion.div>
+        </motion.div>
 
         {/* Out of stock overlay */}
         {isOutOfStock && (
@@ -275,12 +317,17 @@ export function ProductCard({
 
           {/* Stock indicator */}
           {!isOutOfStock && product.track_inventory && product.stock <= 5 && (
-            <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+            <motion.p
+              className="mt-2 text-xs text-amber-600 dark:text-amber-400"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+            >
               ¡Solo quedan {product.stock}!
-            </p>
+            </motion.p>
           )}
         </div>
       </div>
-    </Link>
+    </MotionLink>
   )
 }

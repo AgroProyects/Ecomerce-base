@@ -27,6 +27,20 @@ export async function getProducts(
   const from = (page - 1) * pageSize
   const to = from + pageSize - 1
 
+  // Si se pasa categorySlug, primero obtenemos el category_id
+  let resolvedCategoryId = categoryId
+  if (categorySlug && !categoryId) {
+    const { data: categoryData } = await supabase
+      .from('categories')
+      .select('id')
+      .eq('slug', categorySlug)
+      .single()
+
+    if (categoryData) {
+      resolvedCategoryId = categoryData.id
+    }
+  }
+
   let query = supabase
     .from('products')
     .select('*, categories(name, slug)', { count: 'exact' })
@@ -40,12 +54,8 @@ export async function getProducts(
     query = query.eq('is_featured', isFeatured)
   }
 
-  if (categoryId) {
-    query = query.eq('category_id', categoryId)
-  }
-
-  if (categorySlug) {
-    query = query.eq('categories.slug', categorySlug)
+  if (resolvedCategoryId) {
+    query = query.eq('category_id', resolvedCategoryId)
   }
 
   if (search) {

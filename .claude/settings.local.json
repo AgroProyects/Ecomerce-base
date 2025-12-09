@@ -8,7 +8,8 @@
       "Bash(npm run build:*)",
       "Bash(npx tsc:*)",
       "Bash(timeout 30 npm run dev)",
-      "Bash(powershell -Command:*)"
+      "Bash(powershell -Command:*)",
+      "Bash(mkdir:*)"
     ],
     "deny": [],
     "ask": []

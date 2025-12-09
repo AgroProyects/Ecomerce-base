@@ -18,6 +18,9 @@ export async function getOrders(
     search,
     startDate,
     endDate,
+    minAmount,
+    maxAmount,
+    paymentMethod,
     sortBy = 'created_at',
     sortOrder = 'desc',
   } = params
@@ -35,7 +38,7 @@ export async function getOrders(
 
   if (search) {
     query = query.or(
-      `order_number.ilike.%${search}%,customer_name.ilike.%${search}%,customer_email.ilike.%${search}%`
+      `order_number.ilike.%${search}%,customer_name.ilike.%${search}%,customer_email.ilike.%${search}%,customer_phone.ilike.%${search}%`
     )
   }
 
@@ -44,7 +47,22 @@ export async function getOrders(
   }
 
   if (endDate) {
-    query = query.lte('created_at', endDate)
+    // Agregar un día para incluir todo el día de endDate
+    const endDateObj = new Date(endDate)
+    endDateObj.setDate(endDateObj.getDate() + 1)
+    query = query.lt('created_at', endDateObj.toISOString())
+  }
+
+  if (minAmount !== undefined && minAmount > 0) {
+    query = query.gte('total', minAmount)
+  }
+
+  if (maxAmount !== undefined && maxAmount > 0) {
+    query = query.lte('total', maxAmount)
+  }
+
+  if (paymentMethod) {
+    query = query.eq('payment_method', paymentMethod)
   }
 
   query = query.order(sortBy, { ascending: sortOrder === 'asc' })
@@ -112,12 +130,23 @@ export async function getOrderByNumber(orderNumber: string): Promise<Order | nul
   return data as Order
 }
 
-export async function getOrderItems(orderId: string): Promise<OrderItem[]> {
+export interface OrderItemWithProduct extends OrderItem {
+  product_image: string | null
+  product_slug: string | null
+}
+
+export async function getOrderItems(orderId: string): Promise<OrderItemWithProduct[]> {
   const supabase = createAdminClient()
 
   const { data, error } = await supabase
     .from('order_items')
-    .select('*')
+    .select(`
+      *,
+      products:product_id (
+        images,
+        slug
+      )
+    `)
     .eq('order_id', orderId)
 
   if (error) {
@@ -125,12 +154,20 @@ export async function getOrderItems(orderId: string): Promise<OrderItem[]> {
     throw new Error('Error al obtener items de la orden')
   }
 
-  return data as OrderItem[]
+  // Transformar los datos para incluir la imagen del producto
+  const itemsWithImages = data.map((item: any) => ({
+    ...item,
+    product_image: item.products?.images?.[0] || null,
+    product_slug: item.products?.slug || null,
+    products: undefined, // Remover el objeto products anidado
+  }))
+
+  return itemsWithImages as OrderItemWithProduct[]
 }
 
 export async function getOrderWithItems(id: string): Promise<{
   order: Order
-  items: OrderItem[]
+  items: OrderItemWithProduct[]
 } | null> {
   const order = await getOrderById(id)
 

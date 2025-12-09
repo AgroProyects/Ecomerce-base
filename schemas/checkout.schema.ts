@@ -1,5 +1,18 @@
 import { z } from 'zod'
-import { shippingAddressSchema, paymentMethodSchema } from './order.schema'
+import { paymentMethodSchema } from './order.schema'
+
+// Schema de dirección específico para el checkout (country es requerido sin default para evitar problemas de tipos)
+const checkoutAddressSchema = z.object({
+  street: z.string().min(1, 'La calle es requerida'),
+  number: z.string().min(1, 'El número es requerido'),
+  floor: z.string().nullable().optional(),
+  apartment: z.string().nullable().optional(),
+  city: z.string().min(1, 'La ciudad es requerida'),
+  state: z.string().min(1, 'La provincia/estado es requerido'),
+  postal_code: z.string().min(1, 'El código postal es requerido'),
+  country: z.string().min(1, 'El país es requerido'),
+  additional_info: z.string().nullable().optional(),
+})
 
 export const checkoutFormSchema = z.object({
   email: z
@@ -14,7 +27,7 @@ export const checkoutFormSchema = z.object({
     .string()
     .min(8, 'El teléfono debe tener al menos 8 dígitos')
     .max(20, 'El teléfono no puede exceder 20 caracteres'),
-  address: shippingAddressSchema,
+  address: checkoutAddressSchema,
   notes: z.string().max(500, 'Las notas no pueden exceder 500 caracteres').optional(),
   saveInfo: z.boolean().optional(),
   paymentMethod: paymentMethodSchema,

@@ -43,7 +43,7 @@ export async function createOrder(
     const total = subtotal + data.shipping_cost - data.discount_amount
 
     // Determinar estado inicial según método de pago
-    let initialStatus = 'pending'
+    let initialStatus: 'pending' | 'pending_payment' = 'pending'
     if (data.payment_method === 'bank_transfer') {
       initialStatus = 'pending_payment'
     } else if (data.payment_method === 'cash_on_delivery') {

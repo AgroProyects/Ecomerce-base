@@ -187,7 +187,7 @@ export interface Database {
         Row: {
           id: string
           order_number: string
-          status: 'pending' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
+          status: 'pending' | 'pending_payment' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
           customer_email: string
           customer_name: string
           customer_phone: string | null
@@ -198,6 +198,11 @@ export interface Database {
           discount_amount: number
           total: number
           notes: string | null
+          admin_notes: string | null
+          coupon_id: string | null
+          coupon_code: string | null
+          payment_method: string | null
+          payment_proof_url: string | null
           mp_payment_id: string | null
           mp_preference_id: string | null
           mp_status: string | null
@@ -210,7 +215,7 @@ export interface Database {
         Insert: {
           id?: string
           order_number: string
-          status?: 'pending' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
+          status?: 'pending' | 'pending_payment' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
           customer_email: string
           customer_name: string
           customer_phone?: string | null
@@ -221,6 +226,11 @@ export interface Database {
           discount_amount?: number
           total: number
           notes?: string | null
+          admin_notes?: string | null
+          coupon_id?: string | null
+          coupon_code?: string | null
+          payment_method?: string | null
+          payment_proof_url?: string | null
           mp_payment_id?: string | null
           mp_preference_id?: string | null
           mp_status?: string | null
@@ -233,7 +243,7 @@ export interface Database {
         Update: {
           id?: string
           order_number?: string
-          status?: 'pending' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
+          status?: 'pending' | 'pending_payment' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
           customer_email?: string
           customer_name?: string
           customer_phone?: string | null
@@ -244,6 +254,11 @@ export interface Database {
           discount_amount?: number
           total?: number
           notes?: string | null
+          admin_notes?: string | null
+          coupon_id?: string | null
+          coupon_code?: string | null
+          payment_method?: string | null
+          payment_proof_url?: string | null
           mp_payment_id?: string | null
           mp_preference_id?: string | null
           mp_status?: string | null
@@ -745,7 +760,7 @@ export interface Database {
       }
     }
     Enums: {
-      order_status: 'pending' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
+      order_status: 'pending' | 'pending_payment' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
       user_role: 'super_admin' | 'admin' | 'editor' | 'viewer' | 'customer'
       banner_position: 'hero' | 'secondary' | 'footer' | 'popup'
       discount_type: 'percentage' | 'fixed'
@@ -764,6 +779,9 @@ export type UpdateTables<T extends keyof Database['public']['Tables']> = Databas
 // Convenient aliases
 export type Category = Tables<'categories'>
 export type Product = Tables<'products'>
+export type ProductWithCategory = Product & {
+  categories?: { name: string; slug: string } | null
+}
 export type ProductVariant = Tables<'product_variants'>
 export type Order = Tables<'orders'>
 export type OrderItem = Tables<'order_items'>

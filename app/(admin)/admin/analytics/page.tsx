@@ -1,92 +1,74 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { getOrderStats } from '@/actions/orders'
-import { formatPrice, formatNumber } from '@/lib/utils/format'
+import { Suspense } from 'react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { AnalyticsClient } from '@/components/admin/AnalyticsClient'
+import {
+  getDashboardStats,
+  getDailySales,
+  getTopProducts,
+  getRevenueMetrics,
+  getOrdersByStatus,
+  getCategorySales,
+} from '@/actions/analytics'
 
-export default async function AnalyticsPage() {
-  const stats = await getOrderStats()
+export const dynamic = 'force-dynamic'
+
+async function AnalyticsContent() {
+  const [stats, dailySales30, dailySales7, topProducts, revenueMetrics, ordersByStatus, categorySales] =
+    await Promise.all([
+      getDashboardStats(),
+      getDailySales(30),
+      getDailySales(7),
+      getTopProducts(10),
+      getRevenueMetrics(),
+      getOrdersByStatus(),
+      getCategorySales(),
+    ])
 
   return (
-    <div className="space-y-6">
+    <AnalyticsClient
+      initialStats={stats}
+      initialDailySales30={dailySales30}
+      initialDailySales7={dailySales7}
+      initialTopProducts={topProducts}
+      initialRevenueMetrics={revenueMetrics}
+      initialOrdersByStatus={ordersByStatus}
+      initialCategorySales={categorySales}
+    />
+  )
+}
+
+function AnalyticsSkeleton() {
+  return (
+    <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
-          Analíticas
-        </h1>
-        <p className="text-zinc-500">Estadísticas de tu tienda</p>
+        <Skeleton className="h-9 w-36" />
+        <Skeleton className="h-5 w-64 mt-2" />
       </div>
-
-      {/* Overview */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-zinc-500">
-              Ingresos totales
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">
-              {formatPrice(stats.totalRevenue)}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-zinc-500">
-              Pedidos totales
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">
-              {formatNumber(stats.totalOrders)}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-zinc-500">
-              Pedidos hoy
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">
-              {formatNumber(stats.todayOrders)}
-            </div>
-          </CardContent>
-        </Card>
+      {/* Filtros skeleton */}
+      <Skeleton className="h-24 w-full" />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {[...Array(4)].map((_, i) => (
+          <Skeleton key={i} className="h-32" />
+        ))}
       </div>
-
-      {/* Orders by status */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Pedidos por estado</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-4">
-            {Object.entries(stats.byStatus).map(([status, count]) => (
-              <div
-                key={status}
-                className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800"
-              >
-                <p className="text-sm capitalize text-zinc-500">{status}</p>
-                <p className="text-2xl font-bold">{count}</p>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Placeholder for charts */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Ventas por día</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex h-64 items-center justify-center text-zinc-500">
-            Gráfico de ventas (integrar con Recharts)
-          </div>
-        </CardContent>
-      </Card>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {[...Array(4)].map((_, i) => (
+          <Skeleton key={i} className="h-28" />
+        ))}
+      </div>
+      <Skeleton className="h-96" />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Skeleton className="h-80" />
+        <Skeleton className="h-80" />
+      </div>
     </div>
+  )
+}
+
+export default function AnalyticsPage() {
+  return (
+    <Suspense fallback={<AnalyticsSkeleton />}>
+      <AnalyticsContent />
+    </Suspense>
   )
 }

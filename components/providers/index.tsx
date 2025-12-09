@@ -1,5 +1,6 @@
 'use client'
 
+import { SessionProvider } from 'next-auth/react'
 import { QueryProvider } from './query-provider'
 import { ToastProvider } from './toast-provider'
 
@@ -9,10 +10,12 @@ interface ProvidersProps {
 
 export function Providers({ children }: ProvidersProps) {
   return (
-    <QueryProvider>
-      {children}
-      <ToastProvider />
-    </QueryProvider>
+    <SessionProvider>
+      <QueryProvider>
+        {children}
+        <ToastProvider />
+      </QueryProvider>
+    </SessionProvider>
   )
 }
 

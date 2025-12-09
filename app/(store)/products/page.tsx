@@ -11,9 +11,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
-  Package
+  Package,
+  DollarSign
 } from 'lucide-react'
 import { ProductCard } from '@/components/store/product-card'
+import { PriceRangeSlider } from '@/components/store/price-range-slider'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils/cn'
@@ -21,13 +23,18 @@ import { formatPrice } from '@/lib/utils/format'
 import type { Product, Category } from '@/types/database'
 
 const SORT_OPTIONS = [
-  { value: 'created_at:desc', label: 'Más recientes' },
-  { value: 'created_at:asc', label: 'Más antiguos' },
+  { value: 'created_at:desc', label: 'Mas recientes' },
+  { value: 'created_at:asc', label: 'Mas antiguos' },
   { value: 'price:asc', label: 'Menor precio' },
   { value: 'price:desc', label: 'Mayor precio' },
   { value: 'name:asc', label: 'A-Z' },
   { value: 'name:desc', label: 'Z-A' },
 ]
+
+// Rango de precios por defecto (ajustar segun tu catalogo)
+const DEFAULT_MIN_PRICE = 0
+const DEFAULT_MAX_PRICE = 500000
+const PRICE_STEP = 1000
 
 interface ProductsData {
   data: Product[]
@@ -50,7 +57,7 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [showFilters, setShowFilters] = useState(false)
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 999999])
+  const [priceRange, setPriceRange] = useState<[number, number]>([DEFAULT_MIN_PRICE, DEFAULT_MAX_PRICE])
 
   // Get params from URL
   const page = Number(searchParams.get('page')) || 1
@@ -59,6 +66,13 @@ export default function ProductsPage() {
   const sort = searchParams.get('sort') || 'created_at:desc'
   const minPrice = searchParams.get('minPrice') || ''
   const maxPrice = searchParams.get('maxPrice') || ''
+
+  // Sincronizar priceRange con URL params
+  useEffect(() => {
+    const min = minPrice ? Number(minPrice) : DEFAULT_MIN_PRICE
+    const max = maxPrice ? Number(maxPrice) : DEFAULT_MAX_PRICE
+    setPriceRange([min, max])
+  }, [minPrice, maxPrice])
 
   // Update URL params
   const updateParams = useCallback((newParams: Record<string, string>) => {
@@ -76,6 +90,14 @@ export default function ProductsPage() {
     }
     router.push(`${pathname}?${params.toString()}`)
   }, [router, pathname, searchParams])
+
+  // Aplicar filtro de precio cuando se suelta el slider
+  const handlePriceChangeEnd = useCallback((value: [number, number]) => {
+    updateParams({
+      minPrice: value[0] > DEFAULT_MIN_PRICE ? value[0].toString() : '',
+      maxPrice: value[1] < DEFAULT_MAX_PRICE ? value[1].toString() : '',
+    })
+  }, [updateParams])
 
   // Fetch products
   useEffect(() => {
@@ -132,7 +154,13 @@ export default function ProductsPage() {
   }, [category, minPrice, maxPrice])
 
   const clearAllFilters = () => {
+    setPriceRange([DEFAULT_MIN_PRICE, DEFAULT_MAX_PRICE])
     router.push(pathname)
+  }
+
+  const clearPriceFilter = () => {
+    setPriceRange([DEFAULT_MIN_PRICE, DEFAULT_MAX_PRICE])
+    updateParams({ minPrice: '', maxPrice: '' })
   }
 
   return (
@@ -207,36 +235,28 @@ export default function ProductsPage() {
 
               {/* Price Filter */}
               <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-                <h3 className="mb-4 font-semibold text-zinc-900 dark:text-zinc-50">
-                  Precio
-                </h3>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    placeholder="Mín"
-                    value={priceRange[0] || ''}
-                    onChange={(e) => setPriceRange([Number(e.target.value), priceRange[1]])}
-                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
-                  />
-                  <span className="text-zinc-400">-</span>
-                  <input
-                    type="number"
-                    placeholder="Máx"
-                    value={priceRange[1] === 999999 ? '' : priceRange[1]}
-                    onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value) || 999999])}
-                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
-                  />
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="flex items-center gap-2 font-semibold text-zinc-900 dark:text-zinc-50">
+                    <DollarSign className="h-4 w-4" />
+                    Rango de precio
+                  </h3>
+                  {(minPrice || maxPrice) && (
+                    <button
+                      onClick={clearPriceFilter}
+                      className="text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-50"
+                    >
+                      Limpiar
+                    </button>
+                  )}
                 </div>
-                <Button
-                  size="sm"
-                  className="mt-3 w-full"
-                  onClick={() => updateParams({
-                    minPrice: priceRange[0] > 0 ? priceRange[0].toString() : '',
-                    maxPrice: priceRange[1] < 999999 ? priceRange[1].toString() : '',
-                  })}
-                >
-                  Aplicar filtro
-                </Button>
+                <PriceRangeSlider
+                  min={DEFAULT_MIN_PRICE}
+                  max={DEFAULT_MAX_PRICE}
+                  step={PRICE_STEP}
+                  value={priceRange}
+                  onChange={setPriceRange}
+                  onChangeEnd={handlePriceChangeEnd}
+                />
               </div>
 
               {/* Clear filters */}
@@ -366,37 +386,31 @@ export default function ProductsPage() {
 
                 {/* Price */}
                 <div>
-                  <h4 className="mb-2 text-sm font-medium text-zinc-500">Precio</h4>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      placeholder="Mín"
-                      value={priceRange[0] || ''}
-                      onChange={(e) => setPriceRange([Number(e.target.value), priceRange[1]])}
-                      className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
-                    />
-                    <span className="text-zinc-400">-</span>
-                    <input
-                      type="number"
-                      placeholder="Máx"
-                      value={priceRange[1] === 999999 ? '' : priceRange[1]}
-                      onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value) || 999999])}
-                      className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
-                    />
+                  <div className="mb-3 flex items-center justify-between">
+                    <h4 className="flex items-center gap-2 text-sm font-medium text-zinc-500">
+                      <DollarSign className="h-3.5 w-3.5" />
+                      Rango de precio
+                    </h4>
+                    {(minPrice || maxPrice) && (
+                      <button
+                        onClick={clearPriceFilter}
+                        className="text-xs text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50"
+                      >
+                        Limpiar
+                      </button>
+                    )}
                   </div>
-                  <Button
-                    size="sm"
-                    className="mt-2 w-full"
-                    onClick={() => {
-                      updateParams({
-                        minPrice: priceRange[0] > 0 ? priceRange[0].toString() : '',
-                        maxPrice: priceRange[1] < 999999 ? priceRange[1].toString() : '',
-                      })
+                  <PriceRangeSlider
+                    min={DEFAULT_MIN_PRICE}
+                    max={DEFAULT_MAX_PRICE}
+                    step={PRICE_STEP}
+                    value={priceRange}
+                    onChange={setPriceRange}
+                    onChangeEnd={(value) => {
+                      handlePriceChangeEnd(value)
                       setShowFilters(false)
                     }}
-                  >
-                    Aplicar
-                  </Button>
+                  />
                 </div>
               </div>
             )}

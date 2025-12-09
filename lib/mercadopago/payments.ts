@@ -5,7 +5,7 @@
  * como consultas, actualizaciones y reembolsos
  */
 
-import { Payment } from 'mercadopago'
+import { Payment, PaymentRefund } from 'mercadopago'
 import { mercadoPagoClient, mpLog, mpError, mapMercadoPagoStatus } from './config'
 
 /**
@@ -127,8 +127,8 @@ export async function refundPayment(paymentId: string) {
   try {
     mpLog('Creando reembolso total', { paymentId })
 
-    const payment = new Payment(mercadoPagoClient)
-    const response = await payment.refund({ id: paymentId })
+    const refund = new PaymentRefund(mercadoPagoClient)
+    const response = await refund.create({ payment_id: paymentId, body: {} })
 
     mpLog('Reembolso creado', {
       id: response.id,
@@ -153,9 +153,9 @@ export async function partialRefundPayment(paymentId: string, amount: number) {
   try {
     mpLog('Creando reembolso parcial', { paymentId, amount })
 
-    const payment = new Payment(mercadoPagoClient)
-    const response = await payment.refund({
-      id: paymentId,
+    const refund = new PaymentRefund(mercadoPagoClient)
+    const response = await refund.create({
+      payment_id: paymentId,
       body: {
         amount,
       },

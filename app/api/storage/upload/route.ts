@@ -1,5 +1,23 @@
 import { NextResponse } from 'next/server';
-import { uploadFile, STORAGE_BUCKETS, type StorageBucket } from '@/lib/storage';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { STORAGE_BUCKETS, type StorageBucket } from '@/lib/storage';
+import { v4 as uuidv4 } from 'uuid';
+
+// Generar nombre de archivo único
+function generateUniqueFileName(originalName: string): string {
+  const extension = originalName.split('.').pop();
+  const uuid = uuidv4();
+  return `${uuid}.${extension}`;
+}
+
+// Generar path organizado por fecha
+function generateDatePath(fileName: string): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}/${month}/${day}/${fileName}`;
+}
 
 export async function POST(request: Request) {
   try {
@@ -22,23 +40,39 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await uploadFile({
-      bucket,
-      file,
-      path: path || undefined,
+    // Usar admin client para bypass RLS
+    const supabase = createAdminClient();
+    const storage = supabase.storage;
+
+    // Generar path si no se proporciona
+    const fileName = path || generateDatePath(generateUniqueFileName(file.name));
+
+    // Convertir File a ArrayBuffer para el servidor
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Subir archivo con admin client
+    const { data, error } = await storage.from(bucket).upload(fileName, buffer, {
+      cacheControl: '3600',
+      contentType: file.type,
+      upsert: false,
     });
 
-    if (!result.success) {
+    if (error) {
+      console.error('Error uploading file:', error);
       return NextResponse.json(
-        { error: result.error || 'Error al subir archivo' },
+        { error: error.message || 'Error al subir archivo' },
         { status: 500 }
       );
     }
 
+    // Obtener URL pública
+    const { data: urlData } = storage.from(bucket).getPublicUrl(data.path);
+
     return NextResponse.json({
       success: true,
-      path: result.path,
-      publicUrl: result.publicUrl,
+      path: data.path,
+      publicUrl: urlData.publicUrl,
     });
   } catch (error) {
     console.error('Upload API error:', error);

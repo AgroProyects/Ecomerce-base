@@ -72,6 +72,7 @@ export async function createPreference(
         id: 'shipping',
         title: 'Costo de envío',
         description: 'Costo de envío del pedido',
+        picture_url: undefined,
         category_id: 'shipping',
         quantity: 1,
         currency_id: 'ARS',
@@ -99,7 +100,7 @@ export async function createPreference(
         address: {
           street_name: input.customer.address.street,
           street_number: input.customer.address.number,
-          zip_code: input.customer.address.zipCode,
+          zip_code: input.customer.address.postal_code,
         },
       },
 
@@ -208,14 +209,14 @@ export async function getPreference(preferenceId: string) {
  * @param data Datos a actualizar
  * @returns Preferencia actualizada
  */
-export async function updatePreference(preferenceId: string, data: unknown) {
+export async function updatePreference(preferenceId: string, data: Record<string, unknown>) {
   try {
     mpLog('Actualizando preferencia', { preferenceId })
 
     const preference = new Preference(mercadoPagoClient)
     const response = await preference.update({
       id: preferenceId,
-      updatePreferenceRequest: data,
+      updatePreferenceRequest: data as Parameters<typeof preference.update>[0]['updatePreferenceRequest'],
     })
 
     mpLog('Preferencia actualizada', { id: response.id })

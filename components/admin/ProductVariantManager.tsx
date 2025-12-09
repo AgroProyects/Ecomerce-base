@@ -46,7 +46,6 @@ interface VariantFormData {
   price_override: number | null;
   stock: number;
   attributes: Array<{ name: string; value: string }>;
-  image_url: string | null;
   is_active: boolean;
 }
 
@@ -66,7 +65,6 @@ export function ProductVariantManager({
     price_override: null,
     stock: 0,
     attributes: [],
-    image_url: null,
     is_active: true,
   });
 
@@ -77,7 +75,6 @@ export function ProductVariantManager({
       price_override: null,
       stock: 0,
       attributes: [],
-      image_url: null,
       is_active: true,
     });
     setEditingVariant(null);
@@ -92,7 +89,6 @@ export function ProductVariantManager({
       price_override: variant.price_override,
       stock: variant.stock || 0,
       attributes: (variant.attributes as Array<{ name: string; value: string }>) || [],
-      image_url: variant.image_url || null,
       is_active: variant.is_active ?? true,
     });
     setIsDialogOpen(true);
@@ -292,26 +288,6 @@ export function ProductVariantManager({
                     }))
                   }
                 />
-              </div>
-
-              {/* Imagen de la variante */}
-              <div className="space-y-2">
-                <Label htmlFor="variant-image">Imagen (opcional)</Label>
-                <Input
-                  id="variant-image"
-                  type="url"
-                  placeholder="URL de la imagen de la variante"
-                  value={formData.image_url || ''}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      image_url: e.target.value || null,
-                    }))
-                  }
-                />
-                <p className="text-xs text-zinc-500">
-                  Imagen específica para esta variante (opcional)
-                </p>
               </div>
 
               {/* Atributos */}
