@@ -11,17 +11,24 @@ export async function createProduct(
   input: CreateProductInput
 ): Promise<ApiResponse<Product>> {
   try {
+    console.log('🚀 [CREATE PRODUCT] Input recibido:', input)
+    console.log('🚀 [CREATE PRODUCT] category_id:', input.category_id, 'tipo:', typeof input.category_id)
+
     // Validar input
     const validationResult = createProductSchema.safeParse(input)
 
     if (!validationResult.success) {
+      console.error('❌ [CREATE PRODUCT] Validación fallida:', validationResult.error.issues)
       return {
         success: false,
         error: validationResult.error.issues[0].message,
       }
     }
 
+    console.log('✅ [CREATE PRODUCT] Validación exitosa')
     const data = validationResult.data
+    console.log('📦 [CREATE PRODUCT] Data validada:', data)
+    console.log('📦 [CREATE PRODUCT] category_id validado:', data.category_id)
 
     // Generar slug si no se proporciona
     const slug = data.slug || slugify(data.name)

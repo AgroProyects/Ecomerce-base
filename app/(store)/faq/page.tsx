@@ -49,7 +49,7 @@ const faqCategories: FAQCategory[] = [
     faqs: [
       {
         question: '¿Cuánto tarda en llegar mi pedido?',
-        answer: 'Los tiempos de entrega varían según tu ubicación. En CABA y GBA: 2-4 días hábiles. Interior: 5-10 días hábiles. Recibirás un código de seguimiento por email.',
+        answer: 'Los tiempos de entrega varían según tu ubicación. En Montevideo: 2-4 días hábiles. Interior: 5-10 días hábiles. Recibirás un código de seguimiento por email.',
       },
       {
         question: '¿Cuánto cuesta el envío?',
@@ -57,7 +57,7 @@ const faqCategories: FAQCategory[] = [
       },
       {
         question: '¿Hacen envíos a todo el país?',
-        answer: 'Sí, realizamos envíos a todas las provincias de Argentina a través de las principales empresas de correo.',
+        answer: 'Sí, realizamos envíos a todos los departamentos de Uruguay a través de las principales empresas de correo.',
       },
       {
         question: '¿Cómo puedo rastrear mi pedido?',

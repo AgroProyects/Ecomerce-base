@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Loader2 } from 'lucide-react'
@@ -18,7 +18,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Select } from '@/components/ui/select'
+import {
+  SelectRoot,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { getDepartmentNames, getLocalitiesByDepartment } from '@/lib/constants/uruguay-locations'
 
 const addressSchema = z.object({
   label: z.string().min(1, 'Requerido'),
@@ -29,7 +36,7 @@ const addressSchema = z.object({
   floor: z.string().optional(),
   apartment: z.string().optional(),
   city: z.string().min(1, 'Ciudad requerida'),
-  state: z.string().min(1, 'Provincia requerida'),
+  state: z.string().min(1, 'Departamento requerido'),
   postal_code: z.string().min(1, 'Código postal requerido'),
   additional_info: z.string().optional(),
   is_default: z.boolean(),
@@ -60,13 +67,18 @@ interface AddressDialogProps {
 export function AddressDialog({ children, userId, address }: AddressDialogProps) {
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [selectedDepartment, setSelectedDepartment] = useState<string>(address?.state || '')
+  const [availableLocalities, setAvailableLocalities] = useState<string[]>([])
   const router = useRouter()
+
+  const departments = getDepartmentNames()
 
   const {
     register,
     handleSubmit,
     setValue,
     watch,
+    control,
     formState: { errors },
     reset,
   } = useForm<AddressFormData>({
@@ -86,9 +98,38 @@ export function AddressDialog({ children, userId, address }: AddressDialogProps)
       is_default: address.is_default,
     } : {
       label: 'Casa',
+      recipient_name: '',
+      phone: '',
+      street: '',
+      number: '',
+      floor: '',
+      apartment: '',
+      city: '',
+      state: '',
+      postal_code: '',
+      additional_info: '',
       is_default: false,
     },
   })
+
+  // Cargar localidades cuando se abre el diálogo con una dirección existente
+  useEffect(() => {
+    if (address?.state) {
+      setSelectedDepartment(address.state)
+      const localities = getLocalitiesByDepartment(address.state)
+      setAvailableLocalities(localities)
+    }
+  }, [address])
+
+  // Actualizar localidades cuando cambia el departamento
+  useEffect(() => {
+    if (selectedDepartment) {
+      const localities = getLocalitiesByDepartment(selectedDepartment)
+      setAvailableLocalities(localities)
+    } else {
+      setAvailableLocalities([])
+    }
+  }, [selectedDepartment])
 
   const onSubmit = async (data: AddressFormData) => {
     setIsLoading(true)
@@ -132,16 +173,24 @@ export function AddressDialog({ children, userId, address }: AddressDialogProps)
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
-              <Select
-                label="Etiqueta"
-                options={[
-                  { value: 'Casa', label: 'Casa' },
-                  { value: 'Trabajo', label: 'Trabajo' },
-                  { value: 'Otro', label: 'Otro' },
-                ]}
-                defaultValue={watch('label')}
-                {...register('label')}
+            {/* Etiqueta */}
+            <div className="col-span-2 space-y-2">
+              <Label htmlFor="label">Etiqueta</Label>
+              <Controller
+                name="label"
+                control={control}
+                render={({ field }) => (
+                  <SelectRoot value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona una etiqueta" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Casa">Casa</SelectItem>
+                      <SelectItem value="Trabajo">Trabajo</SelectItem>
+                      <SelectItem value="Otro">Otro</SelectItem>
+                    </SelectContent>
+                  </SelectRoot>
+                )}
               />
             </div>
 
@@ -157,6 +206,7 @@ export function AddressDialog({ children, userId, address }: AddressDialogProps)
               <Input
                 label="Teléfono"
                 type="tel"
+                placeholder="+598 99 123 456"
                 {...register('phone')}
                 error={errors.phone?.message}
               />
@@ -188,31 +238,88 @@ export function AddressDialog({ children, userId, address }: AddressDialogProps)
 
             <div>
               <Input
-                label="Depto"
+                label="Apartamento"
                 placeholder="Opcional"
                 {...register('apartment')}
               />
             </div>
 
+            {/* Departamento */}
+            <div className="col-span-2 space-y-2">
+              <Label htmlFor="department">
+                Departamento <span className="text-red-500">*</span>
+              </Label>
+              <Controller
+                name="state"
+                control={control}
+                render={({ field }) => (
+                  <SelectRoot
+                    value={field.value}
+                    onValueChange={(value) => {
+                      field.onChange(value)
+                      setSelectedDepartment(value)
+                      setValue('city', '') // Reset city when department changes
+                    }}
+                  >
+                    <SelectTrigger className={errors.state ? 'border-red-500' : ''}>
+                      <SelectValue placeholder="Selecciona un departamento" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {departments.map((dept) => (
+                        <SelectItem key={dept} value={dept}>
+                          {dept}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </SelectRoot>
+                )}
+              />
+              {errors.state && (
+                <p className="text-sm text-red-500">{errors.state.message}</p>
+              )}
+            </div>
+
+            {/* Localidad */}
+            <div className="col-span-2 space-y-2">
+              <Label htmlFor="locality">
+                Ciudad/Localidad <span className="text-red-500">*</span>
+              </Label>
+              <Controller
+                name="city"
+                control={control}
+                render={({ field }) => (
+                  <SelectRoot value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger
+                      className={errors.city ? 'border-red-500' : ''}
+                      disabled={!selectedDepartment}
+                    >
+                      <SelectValue
+                        placeholder={
+                          selectedDepartment
+                            ? 'Selecciona una localidad'
+                            : 'Primero selecciona un departamento'
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableLocalities.map((locality) => (
+                        <SelectItem key={locality} value={locality}>
+                          {locality}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </SelectRoot>
+                )}
+              />
+              {errors.city && (
+                <p className="text-sm text-red-500">{errors.city.message}</p>
+              )}
+            </div>
+
             <div className="col-span-2">
               <Input
-                label="Ciudad"
-                {...register('city')}
-                error={errors.city?.message}
-              />
-            </div>
-
-            <div>
-              <Input
-                label="Provincia"
-                {...register('state')}
-                error={errors.state?.message}
-              />
-            </div>
-
-            <div>
-              <Input
                 label="Código Postal"
+                placeholder="Ej: 11000"
                 {...register('postal_code')}
                 error={errors.postal_code?.message}
               />

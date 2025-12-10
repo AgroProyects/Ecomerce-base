@@ -23,9 +23,9 @@ export const shippingAddressSchema = z.object({
   floor: z.string().nullable().optional(),
   apartment: z.string().nullable().optional(),
   city: z.string().min(1, 'La ciudad es requerida'),
-  state: z.string().min(1, 'La provincia/estado es requerido'),
+  state: z.string().min(1, 'El departamento es requerido'),
   postal_code: z.string().min(1, 'El código postal es requerido'),
-  country: z.string().min(1, 'El país es requerido').default('Argentina'),
+  country: z.string().min(1, 'El país es requerido').default('Uruguay'),
   additional_info: z.string().nullable().optional(),
 })
 

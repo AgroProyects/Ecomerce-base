@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { motion } from 'framer-motion'
 import { ShoppingCart, Heart, Eye, Package } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
@@ -30,6 +32,8 @@ export function ProductCard({
   showAddToCart = true,
   variant = 'grid',
 }: ProductCardProps) {
+  const router = useRouter()
+  const { data: session } = useSession()
   const [mounted, setMounted] = useState(false)
   const { addItem } = useCart()
   const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlist()
@@ -73,6 +77,13 @@ export function ProductCard({
   const handleToggleWishlist = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
+
+    // Verificar si el usuario está autenticado
+    if (!session) {
+      toast.error('Debes iniciar sesión para agregar a favoritos')
+      router.push(`/login?callbackUrl=${encodeURIComponent(window.location.pathname)}`)
+      return
+    }
 
     if (isWishlisted) {
       removeFromWishlist(product.id)

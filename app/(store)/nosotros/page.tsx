@@ -60,7 +60,7 @@ export default function NosotrosPage() {
           </div>
           <h3 className="mb-3 text-xl font-bold">Nuestra Visión</h3>
           <p className="text-zinc-600 dark:text-zinc-400">
-            Ser la tienda online de referencia en Argentina, reconocida por la
+            Ser la tienda online de referencia en Uruguay, reconocida por la
             confianza de nuestros clientes, la calidad de nuestros productos y
             la excelencia en el servicio.
           </p>
@@ -115,7 +115,7 @@ export default function NosotrosPage() {
             <Truck className="mx-auto mb-4 h-12 w-12" />
             <h3 className="mb-2 text-lg font-semibold">Envíos a todo el país</h3>
             <p className="text-zinc-400 dark:text-zinc-600">
-              Llegamos a todas las provincias con envío rápido y seguro.
+              Llegamos a todos los departamentos con envío rápido y seguro.
             </p>
           </div>
           <div className="text-center">

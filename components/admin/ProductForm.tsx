@@ -77,7 +77,7 @@ export function ProductForm({ product, categories }: ProductFormProps) {
       compare_price: product?.compare_price || null,
       cost_price: product?.cost_price || null,
       images: product?.images || [],
-      category_id: product?.category_id || '',
+      category_id: product?.category_id || null,
       is_active: product?.is_active ?? true,
       is_featured: product?.is_featured ?? false,
       track_inventory: product?.track_inventory ?? true,
@@ -122,6 +122,9 @@ export function ProductForm({ product, categories }: ProductFormProps) {
   };
 
   const onSubmit = async (data: CreateProductFormInput) => {
+    console.log('🔵 [PRODUCT FORM] Datos del formulario recibidos:', data);
+    console.log('🔵 [PRODUCT FORM] category_id:', data.category_id, 'tipo:', typeof data.category_id);
+
     if (images.length === 0) {
       toast.error('Debes agregar al menos una imagen');
       return;
@@ -138,18 +141,25 @@ export function ProductForm({ product, categories }: ProductFormProps) {
       low_stock_threshold: data.low_stock_threshold ?? 5,
     };
 
+    console.log('🔵 [PRODUCT FORM] formData preparado:', formData);
+    console.log('🔵 [PRODUCT FORM] formData.category_id:', formData.category_id);
+
     startTransition(async () => {
       try {
         let result;
 
         if (product) {
+          console.log('📝 [PRODUCT FORM] Actualizando producto:', product.id);
           result = await updateProduct({
             ...formData,
             id: product.id,
           });
         } else {
+          console.log('✨ [PRODUCT FORM] Creando nuevo producto');
           result = await createProduct(formData);
         }
+
+        console.log('📊 [PRODUCT FORM] Resultado de la operación:', result);
 
         if (result.success) {
           // Si es un producto nuevo y tiene variantes configuradas, crearlas

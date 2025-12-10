@@ -9,7 +9,10 @@
       "Bash(npx tsc:*)",
       "Bash(timeout 30 npm run dev)",
       "Bash(powershell -Command:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(dir:*)",
+      "Bash(findstr:*)",
+      "Bash(npm audit:*)"
     ],
     "deny": [],
     "ask": []

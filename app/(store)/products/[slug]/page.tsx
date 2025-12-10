@@ -4,7 +4,9 @@ import type { Metadata } from 'next'
 import { ProductGallery } from './product-gallery'
 import { ProductInfo } from './product-info'
 import { ProductGrid } from '@/components/store/product-grid'
+import { ReviewsList } from '@/components/product/reviews-list'
 import { getProductBySlug, getProductVariants, getRelatedProducts } from '@/actions/products'
+import { getProductRating } from '@/actions/reviews/queries'
 import { IMAGES } from '@/lib/constants/config'
 
 interface ProductPageProps {
@@ -40,10 +42,13 @@ export default async function ProductPage({ params }: ProductPageProps) {
     notFound()
   }
 
-  const [variants, relatedProducts] = await Promise.all([
+  const [variants, relatedProducts, ratingResult] = await Promise.all([
     getProductVariants(product.id),
     getRelatedProducts(product.id, product.category_id, 4),
+    getProductRating(product.id),
   ])
+
+  const initialRating = ratingResult.success ? ratingResult.data : undefined
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -68,6 +73,11 @@ export default async function ProductPage({ params }: ProductPageProps) {
           </div>
         </div>
       )}
+
+      {/* Reviews Section */}
+      <div className="mt-16">
+        <ReviewsList productId={product.id} initialRating={initialRating} />
+      </div>
 
       {/* Related Products */}
       {relatedProducts.length > 0 && (

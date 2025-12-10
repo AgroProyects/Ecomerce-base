@@ -67,6 +67,13 @@ export const useCartStore = create<CartStoreWithCoupon>()(
       ...initialState,
 
       addItem: (product, variant, quantity = 1) => {
+        console.log('🛒 [CART] Agregando item al carrito:', {
+          productId: product.id,
+          productName: product.name,
+          variantId: variant?.id,
+          quantity,
+        })
+
         const items = get().items
         const coupon = get().appliedCoupon
         const unitPrice = variant?.price_override ?? product.price
@@ -102,6 +109,10 @@ export const useCartStore = create<CartStoreWithCoupon>()(
             unitPrice,
             totalPrice: quantity * unitPrice,
           }
+          console.log('🛒 [CART] Nuevo item creado:', {
+            cartItemId: newItem.id,
+            productId: newItem.product.id,
+          })
           newItems = [...items, newItem]
         }
 

@@ -79,7 +79,7 @@ export function SettingsForm({ settings }: SettingsFormProps) {
     city: '',
     state: '',
     zipCode: '',
-    country: 'Argentina',
+    country: 'Uruguay',
   })
 
   const homepageConfigDefault = parseJsonField<HomepageConfig>(settings?.homepage_config, {
@@ -124,9 +124,9 @@ export function SettingsForm({ settings }: SettingsFormProps) {
       accent_color: settings?.accent_color || '#3b82f6',
       contact_email: settings?.contact_email || '',
       contact_phone: settings?.contact_phone || '',
-      currency: settings?.currency || 'ARS',
+      currency: settings?.currency || 'UYU',
       currency_symbol: settings?.currency_symbol || '$',
-      timezone: settings?.timezone || 'America/Argentina/Buenos_Aires',
+      timezone: settings?.timezone || 'America/Montevideo',
       social_links: socialLinks,
       address: address,
       homepage_config: homepageConfigDefault,
@@ -276,7 +276,7 @@ export function SettingsForm({ settings }: SettingsFormProps) {
                   <Input
                     id="currency"
                     {...register('currency')}
-                    placeholder="ARS"
+                    placeholder="UYU"
                   />
                 </div>
                 <div className="space-y-2">
@@ -292,7 +292,7 @@ export function SettingsForm({ settings }: SettingsFormProps) {
                   <Input
                     id="timezone"
                     {...register('timezone')}
-                    placeholder="America/Argentina/Buenos_Aires"
+                    placeholder="America/Montevideo"
                   />
                 </div>
               </div>
@@ -403,7 +403,7 @@ export function SettingsForm({ settings }: SettingsFormProps) {
                   <Input
                     id="contact_phone"
                     {...register('contact_phone')}
-                    placeholder="+54 11 1234-5678"
+                    placeholder="+598 99 123 456"
                   />
                 </div>
               </div>
@@ -426,7 +426,7 @@ export function SettingsForm({ settings }: SettingsFormProps) {
                 <Input
                   id="address_street"
                   {...register('address.street')}
-                  placeholder="Av. Corrientes 1234"
+                  placeholder="Av. 18 de Julio 1234"
                 />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -435,15 +435,15 @@ export function SettingsForm({ settings }: SettingsFormProps) {
                   <Input
                     id="address_city"
                     {...register('address.city')}
-                    placeholder="Buenos Aires"
+                    placeholder="Montevideo"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="address_state">Provincia</Label>
+                  <Label htmlFor="address_state">Departamento</Label>
                   <Input
                     id="address_state"
                     {...register('address.state')}
-                    placeholder="CABA"
+                    placeholder="Montevideo"
                   />
                 </div>
               </div>
@@ -453,7 +453,7 @@ export function SettingsForm({ settings }: SettingsFormProps) {
                   <Input
                     id="address_zipCode"
                     {...register('address.zipCode')}
-                    placeholder="1000"
+                    placeholder="11000"
                   />
                 </div>
                 <div className="space-y-2">
@@ -461,7 +461,7 @@ export function SettingsForm({ settings }: SettingsFormProps) {
                   <Input
                     id="address_country"
                     {...register('address.country')}
-                    placeholder="Argentina"
+                    placeholder="Uruguay"
                   />
                 </div>
               </div>
@@ -647,7 +647,7 @@ export function SettingsForm({ settings }: SettingsFormProps) {
                   </Label>
                   <Input
                     {...register('social_links.whatsapp')}
-                    placeholder="+5491112345678"
+                    placeholder="+59899123456"
                   />
                   <p className="text-xs text-zinc-500">Número con código de país, sin espacios</p>
                 </div>

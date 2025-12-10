@@ -15,7 +15,7 @@ const addressSchema = z.object({
   city: z.string().min(1),
   state: z.string().min(1),
   postal_code: z.string().min(1),
-  country: z.string().default('Argentina'),
+  country: z.string().default('Uruguay'),
   additional_info: z.string().optional().nullable(),
   is_default: z.boolean().default(false),
 })

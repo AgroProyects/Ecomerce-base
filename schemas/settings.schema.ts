@@ -14,7 +14,7 @@ export const storeAddressSchema = z.object({
   city: z.string().optional(),
   state: z.string().optional(),
   zipCode: z.string().optional(),
-  country: z.string().default('Argentina'),
+  country: z.string().default('Uruguay'),
 })
 
 export const seoConfigSchema = z.object({
@@ -69,9 +69,9 @@ export const storeSettingsSchema = z.object({
   contact_email: z.string().email().nullable().optional(),
   contact_phone: z.string().nullable().optional(),
   address: storeAddressSchema.nullable().optional(),
-  currency: z.string().default('ARS'),
+  currency: z.string().default('UYU'),
   currency_symbol: z.string().default('$'),
-  timezone: z.string().default('America/Argentina/Buenos_Aires'),
+  timezone: z.string().default('America/Montevideo'),
   homepage_config: homepageConfigSchema.nullable().optional(),
   seo_config: seoConfigSchema.nullable().optional(),
   shipping_config: shippingConfigSchema.nullable().optional(),

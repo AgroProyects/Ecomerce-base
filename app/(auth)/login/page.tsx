@@ -63,8 +63,21 @@ function LoginForm() {
         return
       }
 
+      // Obtener la sesión para verificar el rol
+      const response = await fetch('/api/auth/session')
+      const session = await response.json()
+
+      const userRole = session?.user?.role
+
       toast.success('¡Bienvenido de nuevo!')
-      router.push(callbackUrl)
+
+      // Redirigir según el rol del usuario
+      if (userRole === 'admin' || userRole === 'super_admin') {
+        router.push('/admin/dashboard')
+      } else {
+        router.push(callbackUrl)
+      }
+
       router.refresh()
     } catch (error) {
       console.error('SignIn error:', error)

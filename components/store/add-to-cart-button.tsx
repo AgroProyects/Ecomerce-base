@@ -99,11 +99,17 @@ export function AddToCartButton({
       {/* Add to cart button */}
       <Button
         size="lg"
-        className="w-full"
+        className={cn(
+          "w-full h-16 text-lg font-bold shadow-lg transition-all duration-300",
+          "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800",
+          "dark:from-blue-500 dark:to-blue-600 dark:hover:from-blue-600 dark:hover:to-blue-700",
+          "hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]",
+          isOutOfStock && "from-zinc-400 to-zinc-500 hover:from-zinc-400 hover:to-zinc-500 cursor-not-allowed"
+        )}
         onClick={handleAddToCart}
         disabled={isOutOfStock}
       >
-        <ShoppingCart className="mr-2 h-5 w-5" />
+        <ShoppingCart className="mr-3 h-6 w-6" />
         {isOutOfStock ? 'Sin stock' : 'Agregar al carrito'}
       </Button>
     </div>

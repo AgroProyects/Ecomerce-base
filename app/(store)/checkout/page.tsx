@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -17,6 +17,15 @@ import { processCheckout } from '@/actions/checkout'
 import { checkoutFormSchema, type CheckoutFormInput } from '@/schemas/checkout.schema'
 import { ROUTES } from '@/lib/constants/routes'
 import type { PaymentMethod } from '@/schemas/order.schema'
+import { getDepartmentNames, getLocalitiesByDepartment } from '@/lib/constants/uruguay-locations'
+import {
+  SelectRoot,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
 
 export default function CheckoutPage() {
   const router = useRouter()
@@ -24,24 +33,38 @@ export default function CheckoutPage() {
   const appliedCoupon = useCartStore((state) => state.appliedCoupon)
   const [isLoading, setIsLoading] = useState(false)
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null)
+  const [selectedDepartment, setSelectedDepartment] = useState<string>('')
+  const [availableLocalities, setAvailableLocalities] = useState<string[]>([])
 
   const {
     register,
     handleSubmit,
     watch,
     setValue,
+    control,
     formState: { errors },
   } = useForm<CheckoutFormInput>({
     resolver: zodResolver(checkoutFormSchema),
     defaultValues: {
       address: {
-        country: 'Argentina',
+        country: 'Uruguay',
       },
       paymentMethod: 'mercadopago',
     },
   })
 
   const customerEmail = watch('email')
+  const departments = getDepartmentNames()
+
+  // Actualizar localidades cuando cambia el departamento
+  useEffect(() => {
+    if (selectedDepartment) {
+      const localities = getLocalitiesByDepartment(selectedDepartment)
+      setAvailableLocalities(localities)
+    } else {
+      setAvailableLocalities([])
+    }
+  }, [selectedDepartment])
 
   if (itemsCount === 0) {
     router.push(ROUTES.CART)
@@ -52,6 +75,15 @@ export default function CheckoutPage() {
     setIsLoading(true)
 
     try {
+      // Log para ver qué IDs se están enviando
+      console.log('🛒 [CHECKOUT PAGE] Items en carrito:', items.map(item => ({
+        cartItemId: item.id,
+        productId: item.product.id,
+        productName: item.product.name,
+        variantId: item.variant?.id,
+        quantity: item.quantity,
+      })))
+
       const result = await processCheckout({
         customer: data,
         items: items.map((item) => ({
@@ -154,23 +186,90 @@ export default function CheckoutPage() {
                   error={errors.address?.number?.message}
                 />
                 <Input
-                  label="Departamento (opcional)"
+                  label="Apartamento (opcional)"
                   {...register('address.apartment')}
+                  placeholder="Ej: Apto 101"
                 />
                 <Input
-                  label="Ciudad"
-                  {...register('address.city')}
-                  error={errors.address?.city?.message}
+                  label="Piso (opcional)"
+                  {...register('address.floor')}
+                  placeholder="Ej: 3"
                 />
-                <Input
-                  label="Provincia"
-                  {...register('address.state')}
-                  error={errors.address?.state?.message}
-                />
+
+                {/* Departamento */}
+                <div className="space-y-2">
+                  <Label htmlFor="department">
+                    Departamento <span className="text-red-500">*</span>
+                  </Label>
+                  <Controller
+                    name="address.state"
+                    control={control}
+                    render={({ field }) => (
+                      <SelectRoot
+                        value={field.value}
+                        onValueChange={(value) => {
+                          field.onChange(value)
+                          setSelectedDepartment(value)
+                          setValue('address.city', '') // Reset city when department changes
+                        }}
+                      >
+                        <SelectTrigger id="department" className={errors.address?.state ? 'border-red-500' : ''}>
+                          <SelectValue placeholder="Selecciona un departamento" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {departments.map((dept) => (
+                            <SelectItem key={dept} value={dept}>
+                              {dept}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </SelectRoot>
+                    )}
+                  />
+                  {errors.address?.state && (
+                    <p className="text-sm text-red-500">{errors.address.state.message}</p>
+                  )}
+                </div>
+
+                {/* Localidad */}
+                <div className="space-y-2">
+                  <Label htmlFor="locality">
+                    Ciudad/Localidad <span className="text-red-500">*</span>
+                  </Label>
+                  <Controller
+                    name="address.city"
+                    control={control}
+                    render={({ field }) => (
+                      <SelectRoot value={field.value} onValueChange={field.onChange}>
+                        <SelectTrigger
+                          id="locality"
+                          className={errors.address?.city ? 'border-red-500' : ''}
+                          disabled={!selectedDepartment}
+                        >
+                          <SelectValue
+                            placeholder={selectedDepartment ? 'Selecciona una localidad' : 'Primero selecciona un departamento'}
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableLocalities.map((locality) => (
+                            <SelectItem key={locality} value={locality}>
+                              {locality}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </SelectRoot>
+                    )}
+                  />
+                  {errors.address?.city && (
+                    <p className="text-sm text-red-500">{errors.address.city.message}</p>
+                  )}
+                </div>
+
                 <Input
                   label="Código postal"
                   {...register('address.postal_code')}
                   error={errors.address?.postal_code?.message}
+                  placeholder="Ej: 11000"
                 />
               </div>
             </div>

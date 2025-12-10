@@ -28,7 +28,15 @@ export const productSchema = z.object({
     .nullable()
     .optional(),
   images: z.array(z.string().url('URL de imagen inválida')).optional().default([]),
-  category_id: z.string().uuid('ID de categoría inválido').nullable().optional(),
+  category_id: z
+    .union([
+      z.string().uuid('ID de categoría inválido'),
+      z.literal(''),
+      z.null(),
+      z.undefined(),
+    ])
+    .transform((val) => (val === '' ? null : val))
+    .optional(),
   is_active: z.boolean().optional().default(true),
   is_featured: z.boolean().optional().default(false),
   track_inventory: z.boolean().optional().default(true),

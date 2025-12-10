@@ -74,7 +74,7 @@ export default function ContactoPage() {
               </div>
               <div>
                 <h3 className="font-medium">Teléfono</h3>
-                <p className="text-zinc-600 dark:text-zinc-400">+54 11 1234-5678</p>
+                <p className="text-zinc-600 dark:text-zinc-400">+598 99 123 456</p>
                 <p className="text-sm text-zinc-500">Lunes a Viernes de 9 a 18hs</p>
               </div>
             </div>
@@ -85,7 +85,7 @@ export default function ContactoPage() {
               </div>
               <div>
                 <h3 className="font-medium">WhatsApp</h3>
-                <p className="text-zinc-600 dark:text-zinc-400">+54 9 11 1234-5678</p>
+                <p className="text-zinc-600 dark:text-zinc-400">+598 99 123 456</p>
                 <p className="text-sm text-zinc-500">Respuesta rápida</p>
               </div>
             </div>
@@ -97,8 +97,8 @@ export default function ContactoPage() {
               <div>
                 <h3 className="font-medium">Dirección</h3>
                 <p className="text-zinc-600 dark:text-zinc-400">
-                  Av. Corrientes 1234, Piso 5<br />
-                  Buenos Aires, Argentina
+                  Av. 18 de Julio 1234, Piso 5<br />
+                  Montevideo, Uruguay
                 </p>
               </div>
             </div>

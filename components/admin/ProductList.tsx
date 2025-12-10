@@ -86,7 +86,10 @@ export function ProductList({ products, categories, pagination }: ProductListPro
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [viewMode, setViewMode] = useState<ViewMode>('table');
+  // En mobile siempre usar grid, en desktop por defecto table
+  const [viewMode, setViewMode] = useState<ViewMode>(
+    typeof window !== 'undefined' && window.innerWidth < 1024 ? 'grid' : 'table'
+  );
   const [showFilters, setShowFilters] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<ProductWithCategory | null>(null);
@@ -253,8 +256,8 @@ export function ProductList({ products, categories, pagination }: ProductListPro
                 ))}
               </select>
 
-              {/* View mode */}
-              <div className="flex items-center gap-1 rounded-md border border-input p-1">
+              {/* View mode - solo visible en desktop */}
+              <div className="hidden lg:flex items-center gap-1 rounded-md border border-input p-1">
                 <button
                   onClick={() => setViewMode('table')}
                   className={cn(
@@ -412,8 +415,8 @@ export function ProductList({ products, categories, pagination }: ProductListPro
           </CardContent>
         </Card>
       ) : viewMode === 'table' ? (
-        /* Table View */
-        <Card>
+        /* Table View - solo en desktop */
+        <Card className="hidden lg:block">
           <CardContent className="p-0">
             <Table>
               <TableHeader>
@@ -533,9 +536,102 @@ export function ProductList({ products, categories, pagination }: ProductListPro
             </Table>
           </CardContent>
         </Card>
-      ) : (
-        /* Grid View */
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      ) : null}
+
+      {/* Grid View - Siempre visible en mobile, condicional en desktop */}
+      {(viewMode === 'grid' || typeof window !== 'undefined' && window.innerWidth < 1024) && products.length > 0 && (
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:hidden xl:hidden">
+          {products.map((product) => {
+            const stockStatus = getStockStatus(product);
+            return (
+              <Card key={product.id} className="overflow-hidden group">
+                <div className="relative aspect-square bg-zinc-100">
+                  <Image
+                    src={product.images[0] || IMAGES.PLACEHOLDER}
+                    alt={product.name}
+                    fill
+                    className="object-cover transition-transform group-hover:scale-105"
+                    sizes="(max-width: 640px) 100vw, 50vw"
+                  />
+                  {/* Badges */}
+                  <div className="absolute left-2 top-2 flex flex-col gap-1">
+                    {!product.is_active && (
+                      <Badge variant="secondary">
+                        <EyeOff className="h-3 w-3 mr-1" />
+                        Inactivo
+                      </Badge>
+                    )}
+                    {product.is_featured && (
+                      <Badge className="bg-amber-500">
+                        <Star className="h-3 w-3 mr-1" />
+                        Destacado
+                      </Badge>
+                    )}
+                    {stockStatus === 'out' && (
+                      <Badge variant="destructive">Sin stock</Badge>
+                    )}
+                    {stockStatus === 'low' && (
+                      <Badge className="bg-amber-100 text-amber-800">Stock bajo</Badge>
+                    )}
+                  </div>
+                  {/* Actions overlay */}
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    <Button size="sm" variant="secondary" asChild>
+                      <Link href={ROUTES.ADMIN.PRODUCT_EDIT(product.id)}>
+                        <Edit2 className="h-4 w-4 mr-1" />
+                        Editar
+                      </Link>
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDeleteClick(product)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <CardContent className="p-4">
+                  <h3 className="font-medium line-clamp-2 mb-1">{product.name}</h3>
+                  {product.categories && (
+                    <p className="text-xs text-zinc-500 mb-2">
+                      {product.categories.name}
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-lg">{formatPrice(product.price)}</p>
+                      {product.compare_price && (
+                        <p className="text-xs text-zinc-500 line-through">
+                          {formatPrice(product.compare_price)}
+                        </p>
+                      )}
+                    </div>
+                    {product.track_inventory && (
+                      <div className="text-right">
+                        <p className="text-xs text-zinc-500">Stock</p>
+                        <p
+                          className={cn(
+                            'font-medium',
+                            stockStatus === 'out' && 'text-red-600',
+                            stockStatus === 'low' && 'text-amber-600'
+                          )}
+                        >
+                          {product.stock}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Grid View para desktop cuando se selecciona */}
+      {viewMode === 'grid' && products.length > 0 && (
+        <div className="hidden lg:grid gap-4 lg:grid-cols-3 xl:grid-cols-4">
           {products.map((product) => {
             const stockStatus = getStockStatus(product);
             return (

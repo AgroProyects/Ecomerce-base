@@ -35,13 +35,13 @@ export const checkoutFormSchema = z.object({
 })
 
 export const checkoutCartItemSchema = z.object({
-  productId: z.string().uuid(),
-  variantId: z.string().uuid().nullable().optional(),
+  productId: z.string().min(1, 'El ID del producto es requerido'),
+  variantId: z.string().min(1).nullable().optional(),
   quantity: z.number().int().min(1),
 })
 
 export const couponInfoSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().min(1),
   code: z.string(),
   discountAmount: z.number().min(0),
 })

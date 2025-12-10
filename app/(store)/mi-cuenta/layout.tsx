@@ -1,12 +1,13 @@
 import { auth } from '@/lib/auth/config'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Package, MapPin, CreditCard, User, ChevronLeft } from 'lucide-react'
+import { Package, MapPin, CreditCard, User, ChevronLeft, Star } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navItems = [
   { href: '/mi-cuenta', label: 'Resumen', icon: User, exact: true },
   { href: '/mi-cuenta/pedidos', label: 'Mis Pedidos', icon: Package },
+  { href: '/mi-cuenta/reviews', label: 'Mis Reseñas', icon: Star },
   { href: '/mi-cuenta/direcciones', label: 'Direcciones', icon: MapPin },
   { href: '/mi-cuenta/pagos', label: 'Medios de Pago', icon: CreditCard },
   { href: '/mi-cuenta/perfil', label: 'Mis Datos', icon: User },
