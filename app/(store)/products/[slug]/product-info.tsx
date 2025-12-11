@@ -193,41 +193,44 @@ export function ProductInfo({ product, variants }: ProductInfoProps) {
       )}
 
       {/* Add to cart */}
-      <div className="mt-8 flex gap-3">
-        <div className="flex-1">
-          <AddToCartButton
-            product={{
-              id: product.id,
-              name: product.name,
-              slug: product.slug,
-              price: product.price,
-              images: product.images,
-              stock: product.stock,
-              track_inventory: product.track_inventory,
-            }}
-            variant={selectedVariant}
-            className="h-14 w-full rounded-full text-base font-semibold"
-          />
+      <div className="mt-8 space-y-4">
+        <AddToCartButton
+          product={{
+            id: product.id,
+            name: product.name,
+            slug: product.slug,
+            price: product.price,
+            images: product.images,
+            stock: product.stock,
+            track_inventory: product.track_inventory,
+          }}
+          variant={selectedVariant}
+          showQuantity={!isOutOfStock}
+        />
+
+        {/* Action buttons */}
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            size="lg"
+            className={cn(
+              'flex-1 h-12 rounded-xl',
+              isWishlisted && 'border-red-200 bg-red-50 text-red-500 hover:bg-red-100 dark:border-red-900 dark:bg-red-950/50'
+            )}
+            onClick={handleToggleWishlist}
+          >
+            <Heart className={cn('mr-2 h-5 w-5', isWishlisted && 'fill-current')} />
+            {isWishlisted ? 'En favoritos' : 'Agregar a favoritos'}
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-12 w-12 shrink-0 rounded-xl"
+            onClick={handleShare}
+          >
+            <Share2 className="h-5 w-5" />
+          </Button>
         </div>
-        <Button
-          variant="outline"
-          size="icon"
-          className={cn(
-            'h-14 w-14 shrink-0 rounded-full',
-            isWishlisted && 'border-red-200 bg-red-50 text-red-500 hover:bg-red-100 dark:border-red-900 dark:bg-red-950/50'
-          )}
-          onClick={handleToggleWishlist}
-        >
-          <Heart className={cn('h-5 w-5', isWishlisted && 'fill-current')} />
-        </Button>
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-14 w-14 shrink-0 rounded-full"
-          onClick={handleShare}
-        >
-          <Share2 className="h-5 w-5" />
-        </Button>
       </div>
 
       {/* Trust badges */}

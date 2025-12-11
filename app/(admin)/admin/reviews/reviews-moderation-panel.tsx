@@ -61,9 +61,8 @@ export function ReviewsModerationPanel() {
         action === 'reject' ? 'rejected' : 'spam'
 
       const result = await moderateReview({
-        reviewId,
+        id: reviewId,
         status: newStatus,
-        moderatorNotes: undefined,
       })
 
       if (result.success) {

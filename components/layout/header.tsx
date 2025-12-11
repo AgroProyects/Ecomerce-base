@@ -182,16 +182,17 @@ export function Header({
                 size="icon"
                 className="lg:hidden"
                 onClick={() => setIsSearchOpen(true)}
+                aria-label="Buscar productos"
               >
                 <Search className="h-5 w-5" />
               </Button>
 
               {/* Wishlist */}
               <Button variant="ghost" size="icon" className="relative" asChild>
-                <Link href="/favoritos">
+                <Link href="/favoritos" aria-label={wishlistItems.length > 0 ? `Favoritos (${wishlistItems.length} productos)` : 'Ir a favoritos'}>
                   <Heart className="h-5 w-5" />
                   {wishlistItems.length > 0 && (
-                    <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                    <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white" aria-hidden="true">
                       {wishlistItems.length}
                     </span>
                   )}
@@ -205,6 +206,9 @@ export function Header({
                   size="icon"
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                   className="relative"
+                  aria-label={session ? 'Abrir menú de usuario' : 'Iniciar sesión'}
+                  aria-expanded={isUserMenuOpen}
+                  aria-haspopup="menu"
                 >
                   {session?.user?.image ? (
                     <Image

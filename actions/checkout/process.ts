@@ -12,33 +12,27 @@ export async function processCheckout(
   input: ProcessCheckoutInput
 ): Promise<ApiResponse<CheckoutResult>> {
   try {
-    console.log('🚀 [CHECKOUT] Iniciando proceso de checkout:', {
-      customer: input.customer,
-      itemsCount: input.items?.length || 0,
-      coupon: input.coupon,
-    })
-
     // Check if user is authenticated and email is verified
     const session = await auth()
-    if (session?.user?.id) {
+    const userRole = session?.user?.role || 'customer'
+    const isAdmin = userRole === 'admin' || userRole === 'super_admin'
+
+    // Skip email verification for admins
+    if (session?.user?.id && !isAdmin) {
       const verificationResult = await checkEmailVerified(session.user.id)
 
       if (!verificationResult.verified) {
-        console.log('❌ [CHECKOUT] Email no verificado para usuario:', session.user.id)
         return {
           success: false,
           error: 'Debes verificar tu email antes de realizar una compra. Revisa tu bandeja de entrada.',
         }
       }
-
-      console.log('✅ [CHECKOUT] Email verificado para usuario:', session.user.id)
     }
 
     // Validar input
     const validationResult = processCheckoutSchema.safeParse(input)
 
     if (!validationResult.success) {
-      console.error('❌ [CHECKOUT] Validación fallida:', validationResult.error.issues)
       return {
         success: false,
         error: validationResult.error.issues[0].message,
@@ -46,11 +40,6 @@ export async function processCheckout(
     }
 
     const { customer, items, coupon } = validationResult.data
-
-    console.log('✅ [CHECKOUT] Validación exitosa:', {
-      paymentMethod: customer.paymentMethod,
-      itemsCount: items.length,
-    })
 
     const supabase = createAdminClient()
 
@@ -60,11 +49,6 @@ export async function processCheckout(
       .filter((item) => item.variantId)
       .map((item) => item.variantId!)
 
-    console.log('📦 [CHECKOUT] IDs extraídos:', {
-      productIds,
-      variantIds,
-    })
-
     // Obtener productos
     const { data: products, error: productsError } = await supabase
       .from('products')
@@ -72,14 +56,11 @@ export async function processCheckout(
       .in('id', productIds)
 
     if (productsError || !products) {
-      console.error('❌ [CHECKOUT] Error obteniendo productos:', productsError)
       return {
         success: false,
         error: 'Error al obtener información de productos',
       }
     }
-
-    console.log('✅ [CHECKOUT] Productos obtenidos:', products.length)
 
     // Obtener variantes si hay
     let variants: Array<{
@@ -224,7 +205,6 @@ export async function processCheckout(
       .single()
 
     if (orderError || !order) {
-      console.error('Error creating order:', orderError)
       return {
         success: false,
         error: 'Error al crear la orden',
@@ -242,7 +222,6 @@ export async function processCheckout(
       .insert(itemsToInsert)
 
     if (itemsError) {
-      console.error('Error creating order items:', itemsError)
       // Eliminar la orden
       await supabase.from('orders').delete().eq('id', order.id)
       return {
@@ -278,27 +257,14 @@ export async function processCheckout(
 
     // Procesar según método de pago
     if (customer.paymentMethod === 'mercadopago') {
-      console.log('💳 [CHECKOUT] Procesando pago con Mercado Pago')
       // Crear preferencia de Mercado Pago
       try {
-        console.log('🔄 [CHECKOUT] Creando preferencia de MP con:', {
-          orderId: order.id,
-          orderNumber: order.order_number,
-          itemsCount: cartItemsForMP.length,
-          shippingCost,
-        })
-
         const preference = await createPreference({
           orderId: order.id,
           orderNumber: order.order_number,
           items: cartItemsForMP,
           customer,
           shippingCost,
-        })
-
-        console.log('✅ [CHECKOUT] Preferencia creada:', {
-          preferenceId: preference.id,
-          initPoint: preference.initPoint,
         })
 
         // Actualizar orden con ID de preferencia
@@ -318,9 +284,7 @@ export async function processCheckout(
             initPoint: preference.initPoint,
           },
         }
-      } catch (mpError) {
-        console.error('❌ [CHECKOUT] Error creando preferencia de MP:', mpError)
-        console.error('❌ [CHECKOUT] Stack trace:', mpError instanceof Error ? mpError.stack : 'No stack')
+      } catch {
         // Marcar la orden como fallida pero no eliminarla
         await supabase
           .from('orders')
@@ -365,8 +329,7 @@ export async function processCheckout(
         error: 'Método de pago no válido',
       }
     }
-  } catch (error) {
-    console.error('Error in processCheckout:', error)
+  } catch {
     return {
       success: false,
       error: 'Error interno del servidor',

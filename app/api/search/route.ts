@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
+const MAX_LIMIT = 50
+const MAX_QUERY_LENGTH = 200
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const query = searchParams.get('q')?.trim()
-    const limit = parseInt(searchParams.get('limit') || '10')
+    const query = searchParams.get('q')?.trim()?.slice(0, MAX_QUERY_LENGTH)
+    const limit = Math.min(parseInt(searchParams.get('limit') || '10') || 10, MAX_LIMIT)
 
     if (!query || query.length < 2) {
       return NextResponse.json({ products: [], categories: [] })
@@ -37,8 +40,7 @@ export async function GET(request: NextRequest) {
       categories: categories || [],
       query,
     })
-  } catch (error) {
-    console.error('Search error:', error)
+  } catch {
     return NextResponse.json(
       { error: 'Error en la búsqueda' },
       { status: 500 }

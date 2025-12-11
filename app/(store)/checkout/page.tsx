@@ -75,15 +75,6 @@ export default function CheckoutPage() {
     setIsLoading(true)
 
     try {
-      // Log para ver qué IDs se están enviando
-      console.log('🛒 [CHECKOUT PAGE] Items en carrito:', items.map(item => ({
-        cartItemId: item.id,
-        productId: item.product.id,
-        productName: item.product.name,
-        variantId: item.variant?.id,
-        quantity: item.quantity,
-      })))
-
       const result = await processCheckout({
         customer: data,
         items: items.map((item) => ({

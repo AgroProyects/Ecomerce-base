@@ -12,7 +12,8 @@
       "Bash(mkdir:*)",
       "Bash(dir:*)",
       "Bash(findstr:*)",
-      "Bash(npm audit:*)"
+      "Bash(npm audit:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

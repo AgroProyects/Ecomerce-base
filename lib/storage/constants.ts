@@ -7,6 +7,7 @@ export const STORAGE_BUCKETS = {
   BANNERS: 'banners',
   DOCUMENTS: 'documents',
   PAYMENT_PROOFS: 'payment-proofs',
+  REVIEWS: 'reviews',
 } as const;
 
 export type StorageBucket = (typeof STORAGE_BUCKETS)[keyof typeof STORAGE_BUCKETS];

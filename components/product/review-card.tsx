@@ -48,12 +48,12 @@ export function ReviewCard({ review, onUpdate }: ReviewCardProps) {
   const handleReport = async () => {
     if (isReporting) return
 
-    const reason = prompt('¿Por qué deseas reportar esta reseña?')
-    if (!reason?.trim()) return
+    const details = prompt('¿Por qué deseas reportar esta reseña?')
+    if (!details?.trim()) return
 
     setIsReporting(true)
     try {
-      const result = await reportReview({ reviewId: review.id, reason })
+      const result = await reportReview({ reviewId: review.id, reason: 'other', details })
 
       if (result.success) {
         toast.success('Reseña reportada. La revisaremos pronto.')

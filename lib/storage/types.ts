@@ -135,4 +135,10 @@ export const BUCKET_CONFIGS: Record<StorageBucket, BucketConfig> = {
     fileSizeLimit: FILE_SIZE_LIMITS.IMAGE * 1024 * 1024,
     allowedMimeTypes: [...ALLOWED_IMAGE_TYPES],
   },
+  reviews: {
+    name: 'reviews',
+    public: true,
+    fileSizeLimit: FILE_SIZE_LIMITS.IMAGE * 1024 * 1024,
+    allowedMimeTypes: [...ALLOWED_IMAGE_TYPES],
+  },
 };

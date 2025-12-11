@@ -100,7 +100,7 @@ export async function syncCart(
       }
 
       // Validar stock disponible (considerando reservas)
-      const { data: availableStockData } = await supabase.rpc(
+      const { data: availableStockData } = await (supabase.rpc as any)(
         'get_available_stock',
         {
           p_product_id: item.productId,
@@ -163,7 +163,7 @@ export async function syncCart(
     const total = subtotal - discount
 
     // Guardar carrito en BD
-    const { data: cartId } = await supabase.rpc('upsert_cart', {
+    const { data: cartId } = await (supabase.rpc as any)('upsert_cart', {
       p_user_id: userId,
       p_session_id: sessionId,
       p_items: validatedItems,
@@ -175,8 +175,8 @@ export async function syncCart(
     })
 
     // Obtener carrito guardado
-    const { data: cart } = await supabase
-      .from('shopping_carts')
+    const { data: cart } = await (supabase
+      .from as any)('shopping_carts')
       .select('*')
       .eq('id', cartId)
       .single()
@@ -242,7 +242,7 @@ export async function addToCart(
     }
 
     // Validar stock disponible
-    const { data: availableStockData } = await supabase.rpc(
+    const { data: availableStockData } = await (supabase.rpc as any)(
       'get_available_stock',
       {
         p_product_id: data.productId,
@@ -296,7 +296,7 @@ export async function validateCartStock(
 
     for (const item of items) {
       // Validar stock disponible
-      const { data: availableStock } = await supabase.rpc('get_available_stock', {
+      const { data: availableStock } = await (supabase.rpc as any)('get_available_stock', {
         p_product_id: item.productId,
         p_variant_id: item.variantId || null,
       })
@@ -353,14 +353,14 @@ export async function clearCart(): Promise<ApiResponse<void>> {
 
     // Marcar carrito como convertido (no eliminar para historial)
     if (userId) {
-      await supabase
-        .from('shopping_carts')
+      await (supabase
+        .from as any)('shopping_carts')
         .update({ status: 'converted', items: [] })
         .eq('user_id', userId)
         .eq('status', 'active')
     } else if (sessionId) {
-      await supabase
-        .from('shopping_carts')
+      await (supabase
+        .from as any)('shopping_carts')
         .update({ status: 'converted', items: [] })
         .eq('session_id', sessionId)
         .eq('status', 'active')
@@ -398,7 +398,7 @@ export async function mergeCarts(): Promise<ApiResponse<Cart>> {
     const supabase = createAdminClient()
 
     // Llamar función SQL de merge
-    const { data: cartId } = await supabase.rpc('merge_carts', {
+    const { data: cartId } = await (supabase.rpc as any)('merge_carts', {
       p_user_id: session.user.id,
       p_session_id: sessionId,
     })
@@ -412,8 +412,8 @@ export async function mergeCarts(): Promise<ApiResponse<Cart>> {
     }
 
     // Obtener carrito merged
-    const { data: cart } = await supabase
-      .from('shopping_carts')
+    const { data: cart } = await (supabase
+      .from as any)('shopping_carts')
       .select('*')
       .eq('id', cartId)
       .single()

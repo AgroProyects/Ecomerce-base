@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, memo, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { motion } from 'framer-motion'
-import { ShoppingCart, Heart, Eye, Package } from 'lucide-react'
+import { ShoppingCart, Heart, Eye, Package, Star, Truck } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { formatPrice, calculateDiscount } from '@/lib/utils/format'
 import { Badge } from '@/components/ui/badge'
@@ -17,6 +17,9 @@ import { IMAGES } from '@/lib/constants/config'
 import type { Product } from '@/types/database'
 import { toast } from 'sonner'
 
+// Umbral para envío gratis
+const FREE_SHIPPING_THRESHOLD = 15000
+
 const MotionLink = motion.create(Link)
 
 interface ProductCardProps {
@@ -26,7 +29,7 @@ interface ProductCardProps {
   variant?: 'grid' | 'horizontal'
 }
 
-export function ProductCard({
+function ProductCardComponent({
   product,
   className,
   showAddToCart = true,
@@ -52,7 +55,7 @@ export function ProductCard({
 
   const isOutOfStock = product.track_inventory && product.stock <= 0
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const handleAddToCart = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
 
@@ -72,9 +75,9 @@ export function ProductCard({
     })
 
     toast.success('Producto agregado al carrito')
-  }
+  }, [product, isOutOfStock, addItem])
 
-  const handleToggleWishlist = (e: React.MouseEvent) => {
+  const handleToggleWishlist = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
 
@@ -99,7 +102,7 @@ export function ProductCard({
       })
       toast.success('Agregado a favoritos')
     }
-  }
+  }, [session, isWishlisted, product, router, addToWishlist, removeFromWishlist])
 
   // Horizontal variant for list view
   if (variant === 'horizontal') {
@@ -175,6 +178,7 @@ export function ProductCard({
                   isWishlisted && 'border-red-200 bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 dark:border-red-900 dark:bg-red-950'
                 )}
                 onClick={handleToggleWishlist}
+                aria-label={isWishlisted ? 'Quitar de favoritos' : 'Agregar a favoritos'}
               >
                 <Heart className={cn('h-4 w-4', isWishlisted && 'fill-current')} />
               </Button>
@@ -191,154 +195,155 @@ export function ProductCard({
     )
   }
 
+  const hasFreeShipping = product.price >= FREE_SHIPPING_THRESHOLD
+
   // Default grid variant
   return (
     <MotionLink
       href={`/products/${product.slug}`}
       className={cn(
-        'group relative flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950',
+        'group relative flex flex-col overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-sm transition-shadow hover:shadow-xl dark:border-zinc-800/80 dark:bg-zinc-950',
         className
       )}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{
-        y: -8,
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
-      }}
+      whileHover={{ y: -6 }}
       transition={{
         type: 'spring',
-        stiffness: 300,
-        damping: 20,
+        stiffness: 400,
+        damping: 25,
       }}
     >
-      {/* Image */}
-      <div className="relative aspect-square overflow-hidden bg-zinc-100 dark:bg-zinc-900">
+      {/* Image Container */}
+      <div className="relative aspect-[4/5] overflow-hidden bg-gradient-to-br from-zinc-100 to-zinc-50 dark:from-zinc-900 dark:to-zinc-800">
         <Image
           src={product.images[0] || IMAGES.PLACEHOLDER}
           alt={product.name}
           fill
-          className="object-cover transition-transform duration-500 group-hover:scale-110"
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+          className="object-cover transition-all duration-700 ease-out group-hover:scale-105"
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
         />
 
-        {/* Overlay on hover */}
-        <div className="absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/10" />
+        {/* Gradient overlay on hover */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
-        {/* Badges */}
-        <div className="absolute left-3 top-3 flex flex-col gap-1.5">
+        {/* Top badges */}
+        <div className="absolute left-3 top-3 flex flex-col gap-2">
           {hasDiscount && (
-            <Badge variant="destructive" className="px-2 py-1 text-xs font-semibold shadow-md">
+            <Badge className="bg-rose-500 px-2.5 py-1 text-xs font-bold text-white shadow-lg">
               -{discount}%
             </Badge>
           )}
           {product.is_featured && (
-            <Badge variant="secondary" className="px-2 py-1 text-xs font-semibold shadow-md">
+            <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 px-2.5 py-1 text-xs font-bold text-white shadow-lg">
+              <Star className="mr-1 h-3 w-3 fill-current" />
               Destacado
-            </Badge>
-          )}
-          {isOutOfStock && (
-            <Badge variant="outline" className="bg-white/95 px-2 py-1 text-xs font-semibold shadow-md">
-              Sin stock
             </Badge>
           )}
         </div>
 
-        {/* Quick actions */}
+        {/* Wishlist button - always visible */}
         <motion.div
-          className="absolute bottom-3 left-3 right-3 flex justify-center gap-2"
-          initial={{ opacity: 0, y: 20 }}
-          whileHover={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2 }}
+          className="absolute right-3 top-3"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
         >
-          <motion.div
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
+          <Button
+            size="icon"
+            variant="secondary"
+            className={cn(
+              'h-9 w-9 rounded-full bg-white/90 shadow-md backdrop-blur-sm transition-colors hover:bg-white dark:bg-zinc-900/90 dark:hover:bg-zinc-900',
+              isWishlisted && 'bg-rose-50 text-rose-500 hover:bg-rose-100 dark:bg-rose-950 dark:text-rose-400'
+            )}
+            onClick={handleToggleWishlist}
           >
-            <Button
-              size="icon"
-              variant="secondary"
-              className={cn(
-                'h-10 w-10 rounded-full shadow-lg backdrop-blur-sm',
-                isWishlisted && 'bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600'
-              )}
-              onClick={handleToggleWishlist}
-            >
-              <Heart className={cn('h-5 w-5', isWishlisted && 'fill-current')} />
-              <span className="sr-only">{isWishlisted ? 'Quitar de favoritos' : 'Agregar a favoritos'}</span>
-            </Button>
-          </motion.div>
-          {showAddToCart && !isOutOfStock && (
-            <motion.div
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Button
-                size="icon"
-                className="h-10 w-10 rounded-full shadow-lg backdrop-blur-sm"
-                onClick={handleAddToCart}
-              >
-                <ShoppingCart className="h-5 w-5" />
-                <span className="sr-only">Agregar al carrito</span>
-              </Button>
-            </motion.div>
-          )}
-          <motion.div
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Button
-              size="icon"
-              variant="secondary"
-              className="h-10 w-10 rounded-full shadow-lg backdrop-blur-sm"
-            >
-              <Eye className="h-5 w-5" />
-              <span className="sr-only">Ver detalles</span>
-            </Button>
-          </motion.div>
+            <Heart className={cn('h-4 w-4', isWishlisted && 'fill-current')} />
+            <span className="sr-only">{isWishlisted ? 'Quitar de favoritos' : 'Agregar a favoritos'}</span>
+          </Button>
         </motion.div>
+
+        {/* Quick add to cart - appears on hover */}
+        {showAddToCart && !isOutOfStock && (
+          <motion.div
+            className="absolute bottom-0 left-0 right-0 p-3"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Button
+              className="w-full gap-2 rounded-xl bg-zinc-900/95 py-5 font-semibold text-white shadow-xl backdrop-blur-sm transition-all hover:bg-zinc-800 dark:bg-white/95 dark:text-zinc-900 dark:hover:bg-white opacity-0 group-hover:opacity-100"
+              onClick={handleAddToCart}
+            >
+              <ShoppingCart className="h-4 w-4" />
+              Agregar al carrito
+            </Button>
+          </motion.div>
+        )}
 
         {/* Out of stock overlay */}
         {isOutOfStock && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-[2px] dark:bg-black/60">
-            <div className="flex items-center gap-2 rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white dark:bg-white dark:text-zinc-900">
+          <div className="absolute inset-0 flex items-center justify-center bg-white/70 backdrop-blur-sm dark:bg-black/70">
+            <div className="flex items-center gap-2 rounded-full bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white shadow-lg dark:bg-white dark:text-zinc-900">
               <Package className="h-4 w-4" />
-              Sin stock
+              Agotado
             </div>
           </div>
         )}
       </div>
 
-      {/* Info */}
+      {/* Product Info */}
       <div className="flex flex-1 flex-col p-4">
-        <h3 className="line-clamp-2 text-sm font-medium text-zinc-900 transition-colors group-hover:text-primary dark:text-zinc-50">
+        <h3 className="line-clamp-2 text-[15px] font-semibold leading-snug text-zinc-900 transition-colors group-hover:text-primary dark:text-zinc-50">
           {product.name}
         </h3>
 
-        <div className="mt-auto pt-3">
+        <div className="mt-auto space-y-2 pt-3">
+          {/* Price section */}
           <div className="flex items-baseline gap-2">
-            <span className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
+            <span className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
               {formatPrice(product.price)}
             </span>
             {hasDiscount && (
-              <span className="text-sm text-zinc-500 line-through">
+              <span className="text-sm font-medium text-zinc-400 line-through">
                 {formatPrice(product.compare_price!)}
               </span>
             )}
           </div>
 
+          {/* Free shipping badge */}
+          {hasFreeShipping && !isOutOfStock && (
+            <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+              <Truck className="h-3.5 w-3.5" />
+              <span className="text-xs font-medium">Envío gratis</span>
+            </div>
+          )}
+
           {/* Stock indicator */}
           {!isOutOfStock && product.track_inventory && product.stock <= 5 && (
-            <motion.p
-              className="mt-2 text-xs text-amber-600 dark:text-amber-400"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
-            >
-              ¡Solo quedan {product.stock}!
-            </motion.p>
+            <p className="flex items-center gap-1 text-xs font-medium text-amber-600 dark:text-amber-400">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500"></span>
+              </span>
+              ¡Solo {product.stock} disponibles!
+            </p>
           )}
         </div>
       </div>
     </MotionLink>
   )
 }
+
+// Memoizar el componente para evitar re-renders innecesarios
+export const ProductCard = memo(ProductCardComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.product.id === nextProps.product.id &&
+    prevProps.product.price === nextProps.product.price &&
+    prevProps.product.compare_price === nextProps.product.compare_price &&
+    prevProps.product.stock === nextProps.product.stock &&
+    prevProps.product.is_featured === nextProps.product.is_featured &&
+    prevProps.className === nextProps.className &&
+    prevProps.showAddToCart === nextProps.showAddToCart &&
+    prevProps.variant === nextProps.variant
+  )
+})

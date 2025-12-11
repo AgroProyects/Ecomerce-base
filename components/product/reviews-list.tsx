@@ -126,35 +126,43 @@ export function ReviewsList({ productId, initialRating }: ReviewsListProps) {
       {/* Filters and sorting */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <h3 className="font-semibold text-lg">
-          Reseñas de clientes ({rating?.totalReviews || 0})
+          Reseñas de clientes ({rating?.total_reviews || 0})
         </h3>
 
         <div className="flex flex-wrap gap-3 items-center">
           {/* Filter by rating */}
-          <select
-            value={filterRating}
-            onChange={(e) => handleFilterChange(e.target.value as FilterRating)}
-            className="h-10 w-[180px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          >
-            <option value="all">Todas las estrellas</option>
-            <option value="5">5 estrellas</option>
-            <option value="4">4 estrellas</option>
-            <option value="3">3 estrellas</option>
-            <option value="2">2 estrellas</option>
-            <option value="1">1 estrella</option>
-          </select>
+          <div>
+            <label htmlFor="filter-rating" className="sr-only">Filtrar por calificación</label>
+            <select
+              id="filter-rating"
+              value={filterRating}
+              onChange={(e) => handleFilterChange(e.target.value as FilterRating)}
+              className="h-10 w-[180px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              <option value="all">Todas las estrellas</option>
+              <option value="5">5 estrellas</option>
+              <option value="4">4 estrellas</option>
+              <option value="3">3 estrellas</option>
+              <option value="2">2 estrellas</option>
+              <option value="1">1 estrella</option>
+            </select>
+          </div>
 
           {/* Sort */}
-          <select
-            value={sortBy}
-            onChange={(e) => handleSortChange(e.target.value as SortOption)}
-            className="h-10 w-[180px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          >
-            <option value="recent">Más recientes</option>
-            <option value="helpful">Más útiles</option>
-            <option value="rating_high">Mayor calificación</option>
-            <option value="rating_low">Menor calificación</option>
-          </select>
+          <div>
+            <label htmlFor="sort-reviews" className="sr-only">Ordenar reseñas</label>
+            <select
+              id="sort-reviews"
+              value={sortBy}
+              onChange={(e) => handleSortChange(e.target.value as SortOption)}
+              className="h-10 w-[180px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            >
+              <option value="recent">Más recientes</option>
+              <option value="helpful">Más útiles</option>
+              <option value="rating_high">Mayor calificación</option>
+              <option value="rating_low">Menor calificación</option>
+            </select>
+          </div>
         </div>
       </div>
 

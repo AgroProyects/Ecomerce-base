@@ -52,7 +52,7 @@ export function EmailConfirmation() {
 
         // Update customer record
         if (data.user?.id) {
-          const { error: updateError } = await supabase
+          const { error: updateError } = await (supabase as any)
             .from('customers')
             .update({
               email_verified: true,
@@ -65,7 +65,7 @@ export function EmailConfirmation() {
           }
 
           // Log verification attempt
-          await supabase.from('email_verification_attempts').insert({
+          await (supabase as any).from('email_verification_attempts').insert({
             customer_id: data.user.id,
             email: data.user.email || '',
             verified_at: new Date().toISOString(),

@@ -33,7 +33,7 @@ export async function getProductReviews(
     const session = await auth()
 
     // Construir query base
-    let query = supabase
+    let query = (supabase as any)
       .from('product_reviews')
       .select(
         `
@@ -101,17 +101,17 @@ export async function getProductReviews(
     let reviewsWithVotes: ReviewWithUser[] = reviews || []
 
     if (session?.user) {
-      const reviewIds = reviews?.map((r) => r.id) || []
+      const reviewIds = reviews?.map((r: any) => r.id) || []
 
-      const { data: votes } = await supabase
+      const { data: votes } = await (supabase as any)
         .from('review_helpful_votes')
         .select('review_id')
         .in('review_id', reviewIds)
         .eq('user_id', session.user.id)
 
-      const votedIds = new Set(votes?.map((v) => v.review_id) || [])
+      const votedIds = new Set(votes?.map((v: any) => v.review_id) || [])
 
-      reviewsWithVotes = (reviews || []).map((review) => ({
+      reviewsWithVotes = (reviews || []).map((review: any) => ({
         ...review,
         has_voted_helpful: votedIds.has(review.id),
       }))
@@ -153,7 +153,7 @@ export async function getProductRating(
     const supabase = createAdminClient()
 
     // Usar función SQL para calcular rating
-    const { data, error } = await supabase.rpc('calculate_product_rating', {
+    const { data, error } = await (supabase.rpc as any)('calculate_product_rating', {
       p_product_id: productId,
     })
 
@@ -210,7 +210,7 @@ export async function canUserReviewProduct(
     const supabase = createAdminClient()
 
     // Usar función SQL para verificar
-    const { data, error } = await supabase.rpc('can_user_review_product', {
+    const { data, error } = await (supabase.rpc as any)('can_user_review_product', {
       p_user_id: session.user.id,
       p_product_id: productId,
     })
@@ -260,7 +260,7 @@ export async function getUserReviewForProduct(
 
     const supabase = createAdminClient()
 
-    const { data: review, error } = await supabase
+    const { data: review, error } = await (supabase as any)
       .from('product_reviews')
       .select('*')
       .eq('product_id', productId)
@@ -335,20 +335,20 @@ export async function getPendingReviews(params?: {
     const supabase = createAdminClient()
 
     // Obtener estadísticas
-    const { data: statsData } = await supabase
+    const { data: statsData } = await (supabase as any)
       .from('product_reviews')
       .select('status, report_count')
 
     const stats = {
-      pending: statsData?.filter(r => r.status === 'pending').length || 0,
-      approved: statsData?.filter(r => r.status === 'approved').length || 0,
-      rejected: statsData?.filter(r => r.status === 'rejected').length || 0,
-      spam: statsData?.filter(r => r.status === 'spam').length || 0,
-      reported: statsData?.filter(r => (r.report_count || 0) > 0).length || 0,
+      pending: statsData?.filter((r: any) => r.status === 'pending').length || 0,
+      approved: statsData?.filter((r: any) => r.status === 'approved').length || 0,
+      rejected: statsData?.filter((r: any) => r.status === 'rejected').length || 0,
+      spam: statsData?.filter((r: any) => r.status === 'spam').length || 0,
+      reported: statsData?.filter((r: any) => (r.report_count || 0) > 0).length || 0,
     }
 
     // Construir query
-    let query = supabase
+    let query = (supabase as any)
       .from('product_reviews')
       .select(`
         *,
@@ -388,7 +388,7 @@ export async function getPendingReviews(params?: {
     }
 
     // Formatear data
-    const formattedReviews = (reviews || []).map(review => ({
+    const formattedReviews = (reviews || []).map((review: any) => ({
       ...review,
       product_name: review.products?.name,
       product_slug: review.products?.slug,
@@ -432,7 +432,7 @@ export async function getUserReviews(userId: string): Promise<ApiResponse<Review
 
     const supabase = createAdminClient()
 
-    const { data: reviews, error } = await supabase
+    const { data: reviews, error } = await (supabase as any)
       .from('product_reviews')
       .select(`
         *,
@@ -450,7 +450,7 @@ export async function getUserReviews(userId: string): Promise<ApiResponse<Review
     }
 
     // Formatear data
-    const formattedReviews = (reviews || []).map(review => ({
+    const formattedReviews = (reviews || []).map((review: any) => ({
       ...review,
       product_name: review.products?.name,
       product_slug: review.products?.slug,

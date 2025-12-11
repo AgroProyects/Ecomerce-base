@@ -24,11 +24,10 @@ export const createReviewSchema = z.object({
   images: z
     .array(z.string().url('URL de imagen inválida'))
     .max(5, 'Máximo 5 imágenes permitidas')
-    .optional()
     .default([]),
 })
 
-export type CreateReviewInput = z.infer<typeof createReviewSchema>
+export type CreateReviewInput = z.input<typeof createReviewSchema>
 
 // ============================================
 // SCHEMA: Actualizar Review
@@ -65,7 +64,7 @@ export type UpdateReviewInput = z.infer<typeof updateReviewSchema>
 export const moderateReviewSchema = z.object({
   id: z.string().uuid('ID de review inválido'),
   status: z.enum(['pending', 'approved', 'rejected', 'spam'], {
-    errorMap: () => ({ message: 'Estado inválido' }),
+    message: 'Estado inválido',
   }),
 })
 
@@ -86,7 +85,7 @@ export type VoteHelpfulInput = z.infer<typeof voteHelpfulSchema>
 export const reportReviewSchema = z.object({
   reviewId: z.string().uuid('ID de review inválido'),
   reason: z.enum(['spam', 'inappropriate', 'fake', 'offensive', 'other'], {
-    errorMap: () => ({ message: 'Motivo de reporte inválido' }),
+    message: 'Motivo de reporte inválido',
   }),
   details: z
     .string()

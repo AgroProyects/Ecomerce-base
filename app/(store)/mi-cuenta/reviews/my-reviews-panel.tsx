@@ -64,7 +64,7 @@ export function MyReviewsPanel({ userId }: MyReviewsPanelProps) {
     if (!reviewToDelete) return
 
     try {
-      const result = await deleteReview({ reviewId: reviewToDelete })
+      const result = await deleteReview(reviewToDelete)
 
       if (result.success) {
         toast.success('Reseña eliminada')

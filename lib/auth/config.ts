@@ -16,15 +16,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: 'Contraseña', type: 'password' },
       },
       async authorize(credentials) {
-        console.log('=== AUTHORIZE START ===')
-
         if (!credentials?.email || !credentials?.password) {
-          console.log('Missing credentials')
           return null
         }
 
         try {
-          console.log('Attempting login for:', credentials.email)
           const supabase = createAdminClient()
 
           // Autenticar con Supabase Auth
@@ -34,11 +30,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           })
 
           if (authError || !authData.user) {
-            console.log('Auth error:', authError?.message)
             return null
           }
-
-          console.log('Supabase auth successful, user id:', authData.user.id)
 
           // Obtener información del usuario de nuestra tabla
           const { data: user } = await supabase
@@ -47,11 +40,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             .eq('id', authData.user.id)
             .maybeSingle()
 
-          console.log('User lookup result:', user)
-
           if (!user) {
-            console.log('Usuario no encontrado en tabla users, creando...')
-
             // Si no existe en nuestra tabla, crear registro
             const { data: newUser, error: createError } = await supabase
               .from('users')
@@ -64,10 +53,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               .select()
               .maybeSingle()
 
-            console.log('Create user result:', { newUser, createError: createError?.message })
-
             if (createError || !newUser) {
-              console.error('Error creando usuario:', createError)
               // Si ya existe (race condition), intentar obtenerlo de nuevo
               const { data: existingUser } = await supabase
                 .from('users')
@@ -75,50 +61,39 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 .eq('id', authData.user.id)
                 .maybeSingle()
 
-              console.log('Fallback lookup:', existingUser)
-
               if (existingUser) {
-                const result = {
+                return {
                   id: existingUser.id,
                   email: existingUser.email,
                   name: existingUser.name,
                   role: existingUser.role,
                   image: existingUser.avatar_url,
                 }
-                console.log('=== AUTHORIZE SUCCESS (fallback) ===', result)
-                return result
               }
-              console.error('Failed to create or find user')
               return null
             }
 
-            const result = {
+            return {
               id: newUser.id,
               email: newUser.email,
               name: newUser.name,
               role: newUser.role,
               image: newUser.avatar_url,
             }
-            console.log('=== AUTHORIZE SUCCESS (new user) ===', result)
-            return result
           }
 
           if (!user.is_active) {
-            console.log('User is inactive')
             return null
           }
 
-          const result = {
+          return {
             id: user.id,
             email: user.email,
             name: user.name,
             role: user.role,
             image: user.avatar_url,
           }
-          console.log('=== AUTHORIZE SUCCESS (existing user) ===', result)
-          return result
-        } catch (error) {
-          console.error('Authorize error:', error)
+        } catch {
           return null
         }
       },
@@ -150,12 +125,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 role: 'customer',
               })
 
-            if (error) {
-              console.error('Error creating Google user:', error)
-            }
           }
-        } catch (error) {
-          console.error('SignIn callback error:', error)
+        } catch {
+          // Ignore errors in Google sign-in user creation
         }
       }
       return true
@@ -179,8 +151,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           if (data) {
             token.role = data.role
           }
-        } catch (error) {
-          console.error('JWT callback error:', error)
+        } catch {
+          // Ignore JWT callback errors
         }
       }
 

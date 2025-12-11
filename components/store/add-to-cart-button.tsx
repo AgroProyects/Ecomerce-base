@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ShoppingCart, Minus, Plus } from 'lucide-react'
+import { ShoppingCart, Minus, Plus, Check } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { Button } from '@/components/ui/button'
 import { useCart } from '@/hooks/use-cart'
@@ -24,6 +24,7 @@ export function AddToCartButton({
   maxQuantity,
 }: AddToCartButtonProps) {
   const [quantity, setQuantity] = useState(1)
+  const [isAdding, setIsAdding] = useState(false)
   const { addItem } = useCart()
 
   const stock = variant?.stock ?? product.stock
@@ -42,11 +43,13 @@ export function AddToCartButton({
     }
   }
 
-  const handleAddToCart = () => {
-    if (isOutOfStock) {
-      toast.error('Producto sin stock')
-      return
-    }
+  const handleAddToCart = async () => {
+    if (isOutOfStock || isAdding) return
+
+    setIsAdding(true)
+
+    // Pequeño delay para mostrar la animación
+    await new Promise(resolve => setTimeout(resolve, 300))
 
     addItem(product, variant, quantity)
     toast.success(
@@ -54,45 +57,47 @@ export function AddToCartButton({
         ? 'Producto agregado al carrito'
         : `${quantity} productos agregados al carrito`
     )
+
+    // Mostrar el check por un momento
+    await new Promise(resolve => setTimeout(resolve, 800))
+
     setQuantity(1)
+    setIsAdding(false)
   }
 
   return (
-    <div className={cn('flex flex-col gap-3', className)}>
+    <div className={cn('flex flex-col gap-4', className)}>
       {/* Quantity selector */}
-      {showQuantity && (
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-zinc-500 dark:text-zinc-400">
-            Cantidad:
+      {showQuantity && !isOutOfStock && (
+        <div className="flex items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900/50">
+          <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+            Cantidad
           </span>
-          <div className="flex items-center rounded-md border border-zinc-200 dark:border-zinc-800">
+          <div className="flex items-center gap-1">
             <Button
-              variant="ghost"
+              variant="outline"
               size="icon"
-              className="h-10 w-10 rounded-none"
+              className="h-9 w-9 rounded-lg border-zinc-300 bg-white hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700"
               onClick={handleDecrement}
               disabled={quantity <= 1}
+              aria-label="Disminuir cantidad"
             >
               <Minus className="h-4 w-4" />
-              <span className="sr-only">Disminuir cantidad</span>
             </Button>
-            <span className="w-12 text-center font-medium">{quantity}</span>
+            <span className="w-14 text-center text-lg font-semibold tabular-nums">
+              {quantity}
+            </span>
             <Button
-              variant="ghost"
+              variant="outline"
               size="icon"
-              className="h-10 w-10 rounded-none"
+              className="h-9 w-9 rounded-lg border-zinc-300 bg-white hover:bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700"
               onClick={handleIncrement}
               disabled={quantity >= max}
+              aria-label="Aumentar cantidad"
             >
               <Plus className="h-4 w-4" />
-              <span className="sr-only">Aumentar cantidad</span>
             </Button>
           </div>
-          {product.track_inventory && (
-            <span className="text-sm text-zinc-500">
-              ({stock} disponibles)
-            </span>
-          )}
         </div>
       )}
 
@@ -100,18 +105,35 @@ export function AddToCartButton({
       <Button
         size="lg"
         className={cn(
-          "w-full h-16 text-lg font-bold shadow-lg transition-all duration-300",
-          "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800",
-          "dark:from-blue-500 dark:to-blue-600 dark:hover:from-blue-600 dark:hover:to-blue-700",
-          "hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]",
-          isOutOfStock && "from-zinc-400 to-zinc-500 hover:from-zinc-400 hover:to-zinc-500 cursor-not-allowed"
+          "relative w-full h-14 text-base font-semibold rounded-xl transition-all duration-300",
+          "bg-zinc-900 text-white hover:bg-zinc-800",
+          "dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100",
+          "shadow-lg hover:shadow-xl",
+          "active:scale-[0.98]",
+          isAdding && "bg-emerald-600 hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-600 dark:text-white",
+          isOutOfStock && "bg-zinc-300 text-zinc-500 hover:bg-zinc-300 dark:bg-zinc-800 dark:text-zinc-500 dark:hover:bg-zinc-800 cursor-not-allowed shadow-none"
         )}
         onClick={handleAddToCart}
-        disabled={isOutOfStock}
+        disabled={isOutOfStock || isAdding}
       >
-        <ShoppingCart className="mr-3 h-6 w-6" />
-        {isOutOfStock ? 'Sin stock' : 'Agregar al carrito'}
+        <span className={cn(
+          "flex items-center justify-center gap-2 transition-all duration-300",
+          isAdding && "opacity-0"
+        )}>
+          <ShoppingCart className="h-5 w-5" />
+          {isOutOfStock ? 'Sin stock disponible' : 'Agregar al carrito'}
+        </span>
+
+        {/* Success animation */}
+        <span className={cn(
+          "absolute inset-0 flex items-center justify-center gap-2 transition-all duration-300",
+          isAdding ? "opacity-100" : "opacity-0"
+        )}>
+          <Check className="h-5 w-5" />
+          Agregado
+        </span>
       </Button>
+
     </div>
   )
 }

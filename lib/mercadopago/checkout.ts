@@ -24,30 +24,13 @@ export async function createPreference({
   customer,
   shippingCost,
 }: CreatePreferenceParams): Promise<PreferenceResult> {
-  console.log('🔵 [MP] Creando preferencia de MP:', {
-    orderId,
-    orderNumber,
-    itemsCount: items.length,
-    customerEmail: customer.email,
-    shippingCost,
-  })
-
   const client = getMercadoPagoClient()
   const preference = new Preference(client)
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-  console.log('🔵 [MP] Base URL:', baseUrl)
 
   const preferenceItems = items.map((item) => {
     const itemId = item.variant?.id || item.product.id
-    console.log('🔵 [MP] Procesando item:', {
-      productId: item.product.id,
-      variantId: item.variant?.id,
-      itemId,
-      title: item.variant ? `${item.product.name} - ${item.variant.name}` : item.product.name,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-    })
 
     return {
       id: itemId,
@@ -103,35 +86,17 @@ export async function createPreference({
     },
   }
 
-  console.log('🔵 [MP] Cuerpo de la preferencia:', JSON.stringify(preferenceBody, null, 2))
+  const response = await preference.create({
+    body: preferenceBody,
+  })
 
-  try {
-    const response = await preference.create({
-      body: preferenceBody,
-    })
+  if (!response.id || !response.init_point) {
+    throw new Error('Error al crear la preferencia de pago')
+  }
 
-    console.log('✅ [MP] Respuesta de MP:', {
-      id: response.id,
-      initPoint: response.init_point,
-      sandboxInitPoint: response.sandbox_init_point,
-    })
-
-    if (!response.id || !response.init_point) {
-      console.error('❌ [MP] Respuesta inválida de MP:', response)
-      throw new Error('Error al crear la preferencia de pago')
-    }
-
-    return {
-      id: response.id,
-      initPoint: response.init_point,
-      sandboxInitPoint: response.sandbox_init_point || response.init_point,
-    }
-  } catch (error) {
-    console.error('❌ [MP] Error al crear preferencia:', error)
-    if (error instanceof Error) {
-      console.error('❌ [MP] Error message:', error.message)
-      console.error('❌ [MP] Error stack:', error.stack)
-    }
-    throw error
+  return {
+    id: response.id,
+    initPoint: response.init_point,
+    sandboxInitPoint: response.sandbox_init_point || response.init_point,
   }
 }

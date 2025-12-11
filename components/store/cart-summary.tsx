@@ -50,6 +50,12 @@ export function CartSummary({
         }),
       })
 
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        setCouponError(errorData.error || 'Error al validar el cupón. Intentá nuevamente.')
+        return
+      }
+
       const data = await response.json()
 
       if (data.valid && data.coupon) {
@@ -60,7 +66,7 @@ export function CartSummary({
         setCouponError(data.error || 'Cupón no válido')
       }
     } catch (error) {
-      setCouponError('Error al validar el cupón')
+      setCouponError('Error de conexión. Verificá tu internet e intentá nuevamente.')
     } finally {
       setIsValidating(false)
     }
@@ -122,6 +128,7 @@ export function CartSummary({
             </div>
             <button
               onClick={handleRemoveCoupon}
+              aria-label="Quitar cupón"
               className="rounded-full p-1 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/40"
             >
               <X className="h-4 w-4" />
@@ -157,7 +164,7 @@ export function CartSummary({
               </Button>
             </div>
             {couponError && (
-              <p className="mt-1 text-xs text-red-500">{couponError}</p>
+              <p role="alert" className="mt-1 text-xs text-red-500">{couponError}</p>
             )}
           </div>
         )}

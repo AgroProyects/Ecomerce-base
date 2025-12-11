@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use server'
 
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { createServerClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { auth } from '@/lib/auth/config'
 import { checkEmailVerified } from '@/actions/auth/verification'
 import type { ApiResponse } from '@/types/api'
@@ -19,6 +20,10 @@ import {
   type ReportReviewInput,
   type Review,
 } from '@/schemas/review.schema'
+
+// Helper para tablas sin tipos generados
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const fromTable = (supabase: any, table: string) => supabase.from(table)
 
 /**
  * Crear un nuevo review
@@ -59,7 +64,7 @@ export async function createReview(
     const supabase = createAdminClient()
 
     // Verificar que el producto existe
-    const { data: product } = await supabase
+    const { data: product } = await (supabase as any)
       .from('products')
       .select('id')
       .eq('id', data.productId)
@@ -73,7 +78,7 @@ export async function createReview(
     }
 
     // Verificar que el usuario no haya dejado ya un review
-    const { data: existingReview } = await supabase
+    const { data: existingReview } = await (supabase as any)
       .from('product_reviews')
       .select('id')
       .eq('product_id', data.productId)
@@ -88,7 +93,7 @@ export async function createReview(
     }
 
     // Crear review
-    const { data: review, error: createError } = await supabase
+    const { data: review, error: createError } = await (supabase as any)
       .from('product_reviews')
       .insert({
         product_id: data.productId,
@@ -161,7 +166,7 @@ export async function updateReview(
     const supabase = createAdminClient()
 
     // Verificar que el review existe y pertenece al usuario
-    const { data: existingReview } = await supabase
+    const { data: existingReview } = await (supabase as any)
       .from('product_reviews')
       .select('*')
       .eq('id', data.id)
@@ -190,7 +195,7 @@ export async function updateReview(
     if (data.comment !== undefined) updateData.comment = data.comment
     if (data.images !== undefined) updateData.images = data.images
 
-    const { data: updatedReview, error: updateError } = await supabase
+    const { data: updatedReview, error: updateError } = await (supabase as any)
       .from('product_reviews')
       .update(updateData)
       .eq('id', data.id)
@@ -246,7 +251,7 @@ export async function deleteReview(reviewId: string): Promise<ApiResponse<void>>
     const supabase = createAdminClient()
 
     // Verificar que el review existe y pertenece al usuario
-    const { data: existingReview } = await supabase
+    const { data: existingReview } = await (supabase as any)
       .from('product_reviews')
       .select('user_id')
       .eq('id', reviewId)
@@ -267,7 +272,7 @@ export async function deleteReview(reviewId: string): Promise<ApiResponse<void>>
     }
 
     // Eliminar review
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await (supabase as any)
       .from('product_reviews')
       .delete()
       .eq('id', reviewId)
@@ -342,7 +347,7 @@ export async function moderateReview(
       updateData.approved_at = new Date().toISOString()
     }
 
-    const { data: moderatedReview, error: moderateError } = await supabase
+    const { data: moderatedReview, error: moderateError } = await (supabase as any)
       .from('product_reviews')
       .update(updateData)
       .eq('id', data.id)
@@ -404,7 +409,7 @@ export async function voteHelpful(
     const supabase = createAdminClient()
 
     // Verificar si ya votó
-    const { data: existingVote } = await supabase
+    const { data: existingVote } = await (supabase as any)
       .from('review_helpful_votes')
       .select('id')
       .eq('review_id', data.reviewId)
@@ -413,7 +418,7 @@ export async function voteHelpful(
 
     if (existingVote) {
       // Si ya votó, quitar voto
-      const { error: deleteError } = await supabase
+      const { error: deleteError } = await (supabase as any)
         .from('review_helpful_votes')
         .delete()
         .eq('id', existingVote.id)
@@ -435,7 +440,7 @@ export async function voteHelpful(
     }
 
     // Agregar voto
-    const { error: voteError } = await supabase
+    const { error: voteError } = await (supabase as any)
       .from('review_helpful_votes')
       .insert({
         review_id: data.reviewId,
@@ -495,7 +500,7 @@ export async function reportReview(
     const supabase = createAdminClient()
 
     // Crear reporte
-    const { error: reportError } = await supabase
+    const { error: reportError } = await (supabase as any)
       .from('review_reports')
       .insert({
         review_id: data.reviewId,

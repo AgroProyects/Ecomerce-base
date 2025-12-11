@@ -152,32 +152,48 @@ export async function verifyEmailWithToken(token: string) {
 
 /**
  * Get email verification status for current user
+ * Returns success: true only when user is authenticated AND needs verification
+ * Admins are always considered verified (skip email verification)
  */
 export async function getEmailVerificationStatus() {
   try {
     const session = await auth()
 
-    if (!session?.user?.id) {
+    // No hay sesión - el usuario no está logueado, no mostrar banner
+    if (!session?.user?.id || !session?.user?.email) {
       return {
         success: false,
-        verified: false,
-        error: 'No autenticado',
+        verified: true, // Tratamos como verificado para no mostrar el banner
+        email: null,
+      }
+    }
+
+    // Admins skip email verification
+    const userRole = session.user.role || 'customer'
+    const isAdmin = userRole === 'admin' || userRole === 'super_admin'
+
+    if (isAdmin) {
+      return {
+        success: true,
+        verified: true,
+        email: session.user.email,
       }
     }
 
     const result = await checkEmailVerified(session.user.id)
 
+    // Solo mostramos el banner si tenemos un usuario logueado y no está verificado
     return {
-      success: true,
+      success: result.success,
       verified: result.verified,
       email: session.user.email,
     }
-  } catch (error) {
-    console.error('Error in getEmailVerificationStatus:', error)
+  } catch {
+    // En caso de error, no mostrar el banner
     return {
       success: false,
-      verified: false,
-      error: 'Error al verificar el estado',
+      verified: true,
+      email: null,
     }
   }
 }

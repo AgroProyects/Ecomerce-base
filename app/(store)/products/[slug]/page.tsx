@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation'
-import Image from 'next/image'
 import type { Metadata } from 'next'
 import { ProductGallery } from './product-gallery'
 import { ProductInfo } from './product-info'
@@ -7,7 +6,7 @@ import { ProductGrid } from '@/components/store/product-grid'
 import { ReviewsList } from '@/components/product/reviews-list'
 import { getProductBySlug, getProductVariants, getRelatedProducts } from '@/actions/products'
 import { getProductRating } from '@/actions/reviews/queries'
-import { IMAGES } from '@/lib/constants/config'
+import { formatPrice } from '@/lib/utils/format'
 
 interface ProductPageProps {
   params: Promise<{ slug: string }>
@@ -50,8 +49,43 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   const initialRating = ratingResult.success ? ratingResult.data : undefined
 
+  // JSON-LD structured data para SEO
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    description: product.description || undefined,
+    image: product.images[0] || undefined,
+    sku: product.id,
+    offers: {
+      '@type': 'Offer',
+      price: product.price,
+      priceCurrency: 'UYU',
+      availability: product.track_inventory && product.stock <= 0
+        ? 'https://schema.org/OutOfStock'
+        : 'https://schema.org/InStock',
+      ...(product.compare_price && product.compare_price > product.price && {
+        priceValidUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      }),
+    },
+    ...(initialRating && initialRating.total_reviews > 0 && {
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: initialRating.average_rating,
+        reviewCount: initialRating.total_reviews,
+        bestRating: 5,
+        worstRating: 1,
+      },
+    }),
+  }
+
   return (
-    <div className="container mx-auto px-4 py-8">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <div className="container mx-auto px-4 py-8">
       <div className="grid gap-8 lg:grid-cols-2">
         {/* Gallery */}
         <ProductGallery images={product.images} name={product.name} />
@@ -88,6 +122,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
           <ProductGrid products={relatedProducts} columns={4} />
         </div>
       )}
-    </div>
+      </div>
+    </>
   )
 }

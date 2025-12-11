@@ -20,7 +20,10 @@ export default async function StoreLayout({
   ])
 
   // Check if user needs to verify email
-  const showVerificationBanner = emailStatus.success && !emailStatus.verified && emailStatus.email
+  // Solo mostrar si: está logueado (success true) + email no verificado + tiene email
+  const showVerificationBanner = emailStatus.success === true &&
+    emailStatus.verified === false &&
+    emailStatus.email != null
 
   return (
     <div className="flex min-h-screen flex-col">
