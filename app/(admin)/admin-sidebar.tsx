@@ -14,6 +14,7 @@ import {
   Store,
   Tag,
   Star,
+  Truck,
   X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
@@ -59,6 +60,11 @@ const navItems = [
     title: 'Cupones',
     href: '/admin/coupons',
     icon: Tag,
+  },
+  {
+    title: 'Envíos',
+    href: '/admin/shipping',
+    icon: Truck,
   },
   {
     title: 'Configuración',

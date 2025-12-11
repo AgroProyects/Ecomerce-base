@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createPreference } from '@/lib/mercadopago/checkout'
 import { processCheckoutSchema, type ProcessCheckoutInput } from '@/schemas/checkout.schema'
 import { checkEmailVerified } from '@/actions/auth/verification'
+import { calculateShippingServer } from '@/actions/shipping'
 import { auth } from '@/lib/auth/config'
 import type { ApiResponse } from '@/types/api'
 import type { CheckoutResult } from '@/types/cart'
@@ -168,7 +169,19 @@ export async function processCheckout(
 
     // Calcular totales
     const subtotal = orderItems.reduce((sum, item) => sum + item.total_price, 0)
-    const shippingCost = 0 // Implementar lógica de envío
+
+    // Calcular costo de envío basado en el departamento
+    let shippingCost = 0
+    if (customer.address?.state) {
+      const shippingResult = await calculateShippingServer(
+        customer.address.state,
+        subtotal
+      )
+      if (shippingResult) {
+        shippingCost = shippingResult.cost
+      }
+    }
+
     const discountAmount = coupon?.discountAmount || 0
     const total = subtotal + shippingCost - discountAmount
 

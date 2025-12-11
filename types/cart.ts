@@ -18,9 +18,18 @@ export interface Cart {
   total: number
 }
 
+export interface ShippingInfo {
+  cost: number
+  isFreeShipping: boolean
+  estimatedDaysMin: number
+  estimatedDaysMax: number
+  department: string
+}
+
 export interface CartState extends Cart {
   isOpen: boolean
   isLoading: boolean
+  shippingInfo: ShippingInfo | null
 }
 
 export interface CartActions {

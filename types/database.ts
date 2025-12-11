@@ -735,6 +735,42 @@ export interface Database {
           }
         ]
       }
+      shipping_costs: {
+        Row: {
+          id: string
+          department: string
+          cost: number
+          free_shipping_threshold: number | null
+          estimated_days_min: number
+          estimated_days_max: number
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          department: string
+          cost?: number
+          free_shipping_threshold?: number | null
+          estimated_days_min?: number
+          estimated_days_max?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          department?: string
+          cost?: number
+          free_shipping_threshold?: number | null
+          estimated_days_min?: number
+          estimated_days_max?: number
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -790,3 +826,4 @@ export type StoreSettings = Tables<'store_settings'>
 export type Banner = Tables<'banners'>
 export type Coupon = Tables<'coupons'>
 export type CouponUsage = Tables<'coupon_usages'>
+export type ShippingCost = Tables<'shipping_costs'>

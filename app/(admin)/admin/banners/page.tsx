@@ -1,71 +1,47 @@
-import { Plus, Image as ImageIcon } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
-import { getBanners } from '@/actions/settings'
+import { Suspense } from 'react'
+import { Image as ImageIcon } from 'lucide-react'
+import { getBannersAdmin } from '@/actions/settings'
+import { Skeleton } from '@/components/ui/skeleton'
+import { BannersPanel } from './banners-panel'
 
-export default async function BannersPage() {
-  const banners = await getBanners()
+export const dynamic = 'force-dynamic'
 
+async function BannersContent() {
+  const banners = await getBannersAdmin()
+  return <BannersPanel initialBanners={banners} />
+}
+
+function BannersSkeleton() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
-            Banners
-          </h1>
-          <p className="text-zinc-500">{banners.length} banners activos</p>
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-32" />
+          <Skeleton className="h-4 w-48" />
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Nuevo banner
-        </Button>
+        <Skeleton className="h-10 w-36" />
       </div>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+            <Skeleton className="aspect-[16/9]" />
+            <div className="p-4 space-y-3">
+              <Skeleton className="h-5 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
-      {banners.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <ImageIcon className="h-12 w-12 text-zinc-300" />
-            <p className="mt-4 text-lg font-medium">No hay banners</p>
-            <p className="text-zinc-500">Crea un banner para promocionar tus productos</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {banners.map((banner) => (
-            <Card key={banner.id} className="overflow-hidden">
-              <div className="aspect-[3/1] bg-zinc-100 dark:bg-zinc-800">
-                {banner.image_url && (
-                  <img
-                    src={banner.image_url}
-                    alt={banner.title || 'Banner'}
-                    className="h-full w-full object-cover"
-                  />
-                )}
-              </div>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">{banner.title || 'Sin título'}</p>
-                    <p className="text-sm text-zinc-500 capitalize">{banner.position}</p>
-                  </div>
-                  <Badge variant={banner.is_active ? 'success' : 'secondary'}>
-                    {banner.is_active ? 'Activo' : 'Inactivo'}
-                  </Badge>
-                </div>
-                <div className="mt-4 flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1">
-                    Editar
-                  </Button>
-                  <Button variant="outline" size="sm" className="text-red-600">
-                    Eliminar
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+export default function BannersPage() {
+  return (
+    <div className="space-y-6">
+      <Suspense fallback={<BannersSkeleton />}>
+        <BannersContent />
+      </Suspense>
     </div>
   )
 }

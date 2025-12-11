@@ -59,3 +59,22 @@ export async function getBanners(position?: BannerPosition): Promise<Banner[]> {
 export async function getHeroBanners(): Promise<Banner[]> {
   return getBanners('hero')
 }
+
+// Admin: obtiene todos los banners sin filtros
+export async function getBannersAdmin(): Promise<Banner[]> {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('banners')
+    .select('*')
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    if (error.code === 'PGRST205') return []
+    console.error('Error fetching banners for admin:', error)
+    return []
+  }
+
+  return data as Banner[]
+}

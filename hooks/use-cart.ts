@@ -2,8 +2,10 @@
 
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import type { CartStore, CartItem } from '@/types/cart'
+import type { CartStore, CartItem, ShippingInfo } from '@/types/cart'
 import { v4 as uuid } from 'uuid'
+
+export type { ShippingInfo }
 
 export interface AppliedCoupon {
   id: string
@@ -18,6 +20,9 @@ interface CartStoreWithCoupon extends CartStore {
   appliedCoupon: AppliedCoupon | null
   applyCoupon: (coupon: AppliedCoupon) => void
   removeCoupon: () => void
+  shippingInfo: ShippingInfo | null
+  setShippingInfo: (info: ShippingInfo | null) => void
+  setShippingCost: (cost: number) => void
 }
 
 const initialState = {
@@ -30,9 +35,14 @@ const initialState = {
   isOpen: false,
   isLoading: false,
   appliedCoupon: null,
+  shippingInfo: null,
 }
 
-function calculateTotals(items: CartItem[], coupon: AppliedCoupon | null = null) {
+function calculateTotals(
+  items: CartItem[],
+  coupon: AppliedCoupon | null = null,
+  shippingCost: number = 0
+) {
   const itemsCount = items.reduce((acc, item) => acc + item.quantity, 0)
   const subtotal = items.reduce((acc, item) => acc + item.totalPrice, 0)
 
@@ -56,8 +66,9 @@ function calculateTotals(items: CartItem[], coupon: AppliedCoupon | null = null)
   return {
     itemsCount,
     subtotal,
+    shippingCost,
     discount,
-    total: subtotal - discount,
+    total: subtotal + shippingCost - discount,
   }
 }
 
@@ -105,7 +116,7 @@ export const useCartStore = create<CartStoreWithCoupon>()(
           newItems = [...items, newItem]
         }
 
-        const totals = calculateTotals(newItems, coupon)
+        const totals = calculateTotals(newItems, coupon, get().shippingCost)
         set({ items: newItems, ...totals })
       },
 
@@ -116,6 +127,7 @@ export const useCartStore = create<CartStoreWithCoupon>()(
         }
 
         const coupon = get().appliedCoupon
+        const currentShipping = get().shippingCost
         const items = get().items.map((item) =>
           item.id === itemId
             ? {
@@ -126,14 +138,15 @@ export const useCartStore = create<CartStoreWithCoupon>()(
             : item
         )
 
-        const totals = calculateTotals(items, coupon)
+        const totals = calculateTotals(items, coupon, currentShipping)
         set({ items, ...totals })
       },
 
       removeItem: (itemId) => {
         const coupon = get().appliedCoupon
+        const currentShipping = get().shippingCost
         const items = get().items.filter((item) => item.id !== itemId)
-        const totals = calculateTotals(items, coupon)
+        const totals = calculateTotals(items, coupon, currentShipping)
         set({ items, ...totals })
       },
 
@@ -143,14 +156,31 @@ export const useCartStore = create<CartStoreWithCoupon>()(
 
       applyCoupon: (coupon) => {
         const items = get().items
-        const totals = calculateTotals(items, coupon)
+        const currentShipping = get().shippingCost
+        const totals = calculateTotals(items, coupon, currentShipping)
         set({ appliedCoupon: coupon, ...totals })
       },
 
       removeCoupon: () => {
         const items = get().items
-        const totals = calculateTotals(items, null)
+        const currentShipping = get().shippingCost
+        const totals = calculateTotals(items, null, currentShipping)
         set({ appliedCoupon: null, ...totals })
+      },
+
+      setShippingInfo: (info) => {
+        const items = get().items
+        const coupon = get().appliedCoupon
+        const newShippingCost = info?.cost ?? 0
+        const totals = calculateTotals(items, coupon, newShippingCost)
+        set({ shippingInfo: info, ...totals })
+      },
+
+      setShippingCost: (cost) => {
+        const items = get().items
+        const coupon = get().appliedCoupon
+        const totals = calculateTotals(items, coupon, cost)
+        set({ ...totals })
       },
 
       openCart: () => set({ isOpen: true }),
@@ -168,6 +198,7 @@ export const useCartStore = create<CartStoreWithCoupon>()(
         discount: state.discount,
         total: state.total,
         appliedCoupon: state.appliedCoupon,
+        shippingInfo: state.shippingInfo,
       }),
     }
   )

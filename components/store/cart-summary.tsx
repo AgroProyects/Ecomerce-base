@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Loader2, Tag, X, Check } from 'lucide-react'
+import { Loader2, Tag, X, Check, Truck, Clock, Gift } from 'lucide-react'
 import { cn } from '@/lib/utils/cn'
 import { formatPrice } from '@/lib/utils/format'
 import { Button } from '@/components/ui/button'
@@ -24,7 +24,7 @@ export function CartSummary({
   showCouponInput = true,
   customerEmail = '',
 }: CartSummaryProps) {
-  const { subtotal, shippingCost, discount, total, itemsCount } = useCart()
+  const { subtotal, shippingCost, discount, total, itemsCount, shippingInfo } = useCart()
   const appliedCoupon = useCartStore((state) => state.appliedCoupon)
   const applyCoupon = useCartStore((state) => state.applyCoupon)
   const removeCoupon = useCartStore((state) => state.removeCoupon)
@@ -98,12 +98,45 @@ export function CartSummary({
           </span>
         </div>
 
-        {shippingCost > 0 && (
+        {/* Shipping Info */}
+        {shippingInfo ? (
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="flex items-center gap-1.5 text-zinc-500 dark:text-zinc-400">
+                <Truck className="h-4 w-4" />
+                Envío a {shippingInfo.department}
+              </span>
+              {shippingInfo.isFreeShipping ? (
+                <span className="flex items-center gap-1 font-medium text-emerald-600">
+                  <Gift className="h-3.5 w-3.5" />
+                  Gratis
+                </span>
+              ) : (
+                <span className="font-medium text-zinc-900 dark:text-zinc-50">
+                  {formatPrice(shippingCost)}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+              <Clock className="h-3.5 w-3.5" />
+              <span>
+                Entrega: {shippingInfo.estimatedDaysMin === shippingInfo.estimatedDaysMax
+                  ? `${shippingInfo.estimatedDaysMin} día${shippingInfo.estimatedDaysMin !== 1 ? 's' : ''} hábil${shippingInfo.estimatedDaysMin !== 1 ? 'es' : ''}`
+                  : `${shippingInfo.estimatedDaysMin}-${shippingInfo.estimatedDaysMax} días hábiles`}
+              </span>
+            </div>
+          </div>
+        ) : shippingCost > 0 ? (
           <div className="flex justify-between text-sm">
             <span className="text-zinc-500 dark:text-zinc-400">Envío</span>
             <span className="font-medium text-zinc-900 dark:text-zinc-50">
               {formatPrice(shippingCost)}
             </span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 text-sm text-zinc-500 dark:text-zinc-400">
+            <Truck className="h-4 w-4" />
+            <span>El envío se calculará en checkout</span>
           </div>
         )}
 
