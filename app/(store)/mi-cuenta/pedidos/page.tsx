@@ -41,7 +41,7 @@ export default async function PedidosPage() {
         )
       )
     `)
-    .eq('user_id', session.user.id)
+    .eq('customer_email', session.user.email)
     .order('created_at', { ascending: false })
 
   return (

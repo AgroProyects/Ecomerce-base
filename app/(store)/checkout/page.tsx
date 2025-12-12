@@ -26,6 +26,7 @@ import {
   Clock,
   Gift,
 } from 'lucide-react'
+import Image from 'next/image'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -34,6 +35,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { CartSummary } from '@/components/store/cart-summary'
 import { PaymentMethodSelector } from '@/components/checkout/PaymentMethodSelector'
+import { MercadoPagoCardForm } from '@/components/checkout/MercadoPagoCardForm'
 import { useCart, useCartStore, type ShippingInfo } from '@/hooks/use-cart'
 import { processCheckout } from '@/actions/checkout'
 import { checkoutFormSchema, type CheckoutFormInput } from '@/schemas/checkout.schema'
@@ -56,6 +58,21 @@ const steps = [
   { id: 'payment', label: 'Pago', icon: CreditCard },
 ]
 
+// Mercado Pago Logo Component - Using the hands logo with text
+const MercadoPagoButton = () => (
+  <div className="flex items-center justify-center gap-3">
+    <Image
+      src="/images/MercadoPAgoLogoManos.png"
+      alt="Mercado Pago"
+      width={32}
+      height={32}
+      className="h-8 w-8 object-contain"
+      priority
+    />
+    <span className="font-semibold text-base">Pagar con Mercado Pago</span>
+  </div>
+)
+
 export default function CheckoutPage() {
   const router = useRouter()
   const { items, itemsCount, clearCart, discount, subtotal, shippingInfo } = useCart()
@@ -67,6 +84,9 @@ export default function CheckoutPage() {
   const [selectedDepartment, setSelectedDepartment] = useState<string>('')
   const [availableLocalities, setAvailableLocalities] = useState<string[]>([])
   const [currentStep, setCurrentStep] = useState(0)
+  const [showCardForm, setShowCardForm] = useState(false)
+  const [createdOrderId, setCreatedOrderId] = useState<string | null>(null)
+  const [orderTotal, setOrderTotal] = useState(0)
 
   const {
     register,
@@ -176,20 +196,85 @@ export default function CheckoutPage() {
         return
       }
 
-      clearCart()
-
-      if (result.data.paymentMethod === 'mercadopago' && result.data.initPoint) {
-        window.location.href = result.data.initPoint
-      } else if (result.data.redirectUrl) {
-        router.push(result.data.redirectUrl)
+      // Si es Mercado Pago, mostrar formulario de tarjeta (Checkout API)
+      if (result.data.paymentMethod === 'mercadopago') {
+        if (!result.data.orderId) {
+          toast.error('Error: ID de orden no disponible')
+          return
+        }
+        const total = subtotal + (shippingInfo?.cost || 0) - discount
+        setCreatedOrderId(result.data.orderId)
+        setOrderTotal(total)
+        setShowCardForm(true)
+        toast.success('Orden creada. Completa los datos de pago.')
       } else {
-        router.push(`/checkout/success?order_id=${result.data.orderId}`)
+        // Otros métodos de pago
+        clearCart()
+        if (result.data.redirectUrl) {
+          router.push(result.data.redirectUrl)
+        } else {
+          router.push(`/checkout/success?order_id=${result.data.orderId}`)
+        }
       }
     } catch (error) {
       toast.error('Error al procesar el pago')
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handlePaymentSuccess = (paymentId: number) => {
+    toast.success('¡Pago procesado exitosamente!')
+    clearCart()
+    router.push(`/mi-cuenta/pedidos/${createdOrderId}`)
+  }
+
+  const handlePaymentError = (error: string) => {
+    toast.error(error)
+  }
+
+  // Si ya se creó la orden y estamos en el paso de pago con tarjeta
+  if (showCardForm && createdOrderId) {
+    return (
+      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900">
+        <div className="container mx-auto px-4 py-6 lg:py-8 max-w-2xl">
+          <div className="mb-8">
+            <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 sm:text-3xl mb-2">
+              Completa tu pago
+            </h1>
+            <p className="text-zinc-500 dark:text-zinc-400">
+              Ingresa los datos de tu tarjeta para finalizar la compra
+            </p>
+          </div>
+
+          <Card className="overflow-hidden border-0 shadow-lg">
+            <div className="h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
+            <CardContent className="p-6">
+              <MercadoPagoCardForm
+                orderId={createdOrderId}
+                amount={orderTotal}
+                onSuccess={handlePaymentSuccess}
+                onError={handlePaymentError}
+              />
+            </CardContent>
+          </Card>
+
+          <div className="mt-6 text-center">
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setShowCardForm(false)
+                setCreatedOrderId(null)
+              }}
+              className="text-zinc-500"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Volver al formulario
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -651,10 +736,7 @@ export default function CheckoutPage() {
                           Procesando...
                         </>
                       ) : selectedPaymentMethod === 'mercadopago' ? (
-                        <>
-                          <Lock className="h-4 w-4" />
-                          Pagar con Mercado Pago
-                        </>
+                        <MercadoPagoButton />
                       ) : selectedPaymentMethod === 'bank_transfer' ? (
                         <>
                           <Check className="h-4 w-4" />

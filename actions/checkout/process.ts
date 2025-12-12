@@ -3,7 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createPreference } from '@/lib/mercadopago/checkout'
 import { processCheckoutSchema, type ProcessCheckoutInput } from '@/schemas/checkout.schema'
-import { checkEmailVerified } from '@/actions/auth/verification'
+// import { checkEmailVerified } from '@/actions/auth/verification' // TODO: Habilitar más tarde
 import { calculateShippingServer } from '@/actions/shipping'
 import { auth } from '@/lib/auth/config'
 import type { ApiResponse } from '@/types/api'
@@ -18,8 +18,9 @@ export async function processCheckout(
     const userRole = session?.user?.role || 'customer'
     const isAdmin = userRole === 'admin' || userRole === 'super_admin'
 
+    // TODO: Habilitar verificación de email más tarde
     // Skip email verification for admins
-    if (session?.user?.id && !isAdmin) {
+    /* if (session?.user?.id && !isAdmin) {
       const verificationResult = await checkEmailVerified(session.user.id)
 
       if (!verificationResult.verified) {
@@ -28,7 +29,7 @@ export async function processCheckout(
           error: 'Debes verificar tu email antes de realizar una compra. Revisa tu bandeja de entrada.',
         }
       }
-    }
+    } */
 
     // Validar input
     const validationResult = processCheckoutSchema.safeParse(input)
@@ -272,6 +273,13 @@ export async function processCheckout(
     if (customer.paymentMethod === 'mercadopago') {
       // Crear preferencia de Mercado Pago
       try {
+        console.log('=== INICIANDO CREACIÓN DE PREFERENCIA DE MERCADO PAGO ===')
+        console.log('Order ID:', order.id)
+        console.log('Order Number:', order.order_number)
+        console.log('Items count:', cartItemsForMP.length)
+        console.log('Shipping cost:', shippingCost)
+        console.log('Total:', total)
+
         const preference = await createPreference({
           orderId: order.id,
           orderNumber: order.order_number,
@@ -280,11 +288,17 @@ export async function processCheckout(
           shippingCost,
         })
 
+        console.log('✓ Preferencia creada exitosamente')
+        console.log('Preference ID:', preference.id)
+        console.log('Init Point:', preference.initPoint)
+
         // Actualizar orden con ID de preferencia
         await supabase
           .from('orders')
           .update({ mp_preference_id: preference.id })
           .eq('id', order.id)
+
+        console.log('✓ Orden actualizada con preference_id')
 
         return {
           success: true,
@@ -297,19 +311,29 @@ export async function processCheckout(
             initPoint: preference.initPoint,
           },
         }
-      } catch {
+      } catch (error) {
+        console.error('=== ERROR AL CREAR PREFERENCIA DE MERCADO PAGO ===')
+        console.error('Error completo:', error)
+        console.error('Error message:', error instanceof Error ? error.message : 'Unknown error')
+        console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+
+        // Si el error tiene información adicional de Mercado Pago
+        if (error && typeof error === 'object' && 'cause' in error) {
+          console.error('Error cause:', error.cause)
+        }
+
         // Marcar la orden como fallida pero no eliminarla
         await supabase
           .from('orders')
           .update({
             status: 'cancelled',
-            notes: 'Error al crear preferencia de pago',
+            notes: `Error al crear preferencia de pago: ${error instanceof Error ? error.message : 'Error desconocido'}`,
           })
           .eq('id', order.id)
 
         return {
           success: false,
-          error: 'Error al procesar el pago. Por favor, intenta nuevamente.',
+          error: `Error al procesar el pago con Mercado Pago: ${error instanceof Error ? error.message : 'Error desconocido'}. Por favor, intenta nuevamente.`,
         }
       }
     } else if (customer.paymentMethod === 'bank_transfer') {

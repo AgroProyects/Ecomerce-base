@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
     const supabase = createAdminClient()
 
     // Create user in Supabase Auth
+    // The trigger 'on_auth_user_created' will automatically create the customer record
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email,
       password,
@@ -53,21 +54,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create user in our users table
-    const { error: dbError } = await supabase
-      .from('users')
-      .insert({
-        id: authData.user.id,
-        email: authData.user.email!,
-        name,
-        role: 'customer', // Default role for new users
-      })
-
-    if (dbError) {
-      console.error('DB error:', dbError)
-      // User was created in auth but not in our table - still return success
-      // The user will be created on first login via the authorize function
-    }
+    // The customer record is automatically created by the database trigger
+    // No need to manually insert into customers table
 
     return NextResponse.json(
       { message: 'Cuenta creada exitosamente' },

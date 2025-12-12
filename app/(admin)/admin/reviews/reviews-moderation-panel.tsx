@@ -30,7 +30,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import {
-  Select,
+  SelectRoot,
   SelectContent,
   SelectItem,
   SelectTrigger,
@@ -272,7 +272,7 @@ export function ReviewsModerationPanel() {
             {/* Sort */}
             <div className="flex items-center gap-3">
               <SortAsc className="h-4 w-4 text-zinc-400" />
-              <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortBy)}>
+              <SelectRoot value={sortBy} onValueChange={(v) => setSortBy(v as SortBy)}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Ordenar por" />
                 </SelectTrigger>
@@ -282,7 +282,7 @@ export function ReviewsModerationPanel() {
                   <SelectItem value="rating_low">Menor calificación</SelectItem>
                   <SelectItem value="reports">Más reportadas</SelectItem>
                 </SelectContent>
-              </Select>
+              </SelectRoot>
             </div>
           </div>
         </CardContent>
