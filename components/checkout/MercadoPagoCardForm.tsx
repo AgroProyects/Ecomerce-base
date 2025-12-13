@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2 } from 'lucide-react'
+import { Loader2, CreditCard, Lock, CheckCircle2 } from 'lucide-react'
+import Image from 'next/image'
+import { cn } from '@/lib/utils/cn'
 
 interface MercadoPagoCardFormProps {
   orderId: string
@@ -44,6 +46,8 @@ export function MercadoPagoCardForm({
   // Datos detectados
   const [paymentMethodId, setPaymentMethodId] = useState('')
   const [issuerId, setIssuerId] = useState('')
+  const [cardBrand, setCardBrand] = useState<string>('')
+  const [cardBrandName, setCardBrandName] = useState<string>('')
 
   // Cargar SDK de Mercado Pago
   useEffect(() => {
@@ -88,7 +92,9 @@ export function MercadoPagoCardForm({
         if (result.results && result.results.length > 0) {
           const paymentMethod = result.results[0]
           setPaymentMethodId(paymentMethod.id)
-          console.log('Método de pago detectado:', paymentMethod.id)
+          setCardBrand(paymentMethod.id)
+          setCardBrandName(paymentMethod.name)
+          console.log('Método de pago detectado:', paymentMethod)
 
           // Obtener issuer si es necesario
           if (paymentMethod.additional_info_needed.includes('issuer_id')) {
@@ -100,10 +106,15 @@ export function MercadoPagoCardForm({
               })
               .catch((err: any) => console.error('Error al obtener issuer:', err))
           }
+        } else {
+          setCardBrand('')
+          setCardBrandName('')
         }
       })
       .catch((err: any) => {
         console.error('Error al obtener método de pago:', err)
+        setCardBrand('')
+        setCardBrandName('')
       })
   }, [mp, cardNumber])
 
@@ -224,118 +235,227 @@ export function MercadoPagoCardForm({
     }
   }
 
+  // Función para obtener la imagen de la tarjeta
+  const getCardImage = () => {
+    const brandMap: Record<string, string> = {
+      'visa': 'https://http2.mlstatic.com/storage/logos-api-admin/a5f047d0-9be0-11ec-aad4-c3381f368aaf-m.svg',
+      'master': 'https://http2.mlstatic.com/storage/logos-api-admin/aa2b8f70-5c85-11ec-ae75-df2bef173be2-m.svg',
+      'amex': 'https://http2.mlstatic.com/storage/logos-api-admin/ce454480-445f-11eb-bf78-3b1ee7bf744c-m.svg',
+      'oca': 'https://http2.mlstatic.com/storage/logos-api-admin/fec5f230-06ee-11eb-9984-b7076edb0bb7-m.svg',
+      'diners': 'https://http2.mlstatic.com/storage/logos-api-admin/c0e5bc50-445f-11eb-bf78-3b1ee7bf744c-m.svg',
+      'maestro': 'https://http2.mlstatic.com/storage/logos-api-admin/5b9e5e30-445f-11eb-bf78-3b1ee7bf744c-m.svg',
+    }
+
+    return brandMap[cardBrand] || null
+  }
+
   if (!sdkReady) {
     return (
       <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="ml-2">Cargando formulario de pago...</span>
+        <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+        <span className="ml-3 text-zinc-600 dark:text-zinc-400">Cargando formulario de pago...</span>
       </div>
     )
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
+        <Alert variant="destructive" className="animate-in fade-in slide-in-from-top-2">
+          <AlertDescription className="flex items-center gap-2">
+            <Lock className="h-4 w-4" />
+            {error}
+          </AlertDescription>
         </Alert>
       )}
 
-      <div className="space-y-2">
-        <Label htmlFor="cardNumber">Número de tarjeta</Label>
-        <Input
-          id="cardNumber"
-          type="text"
-          placeholder="0000 0000 0000 0000"
-          value={cardNumber}
-          onChange={handleCardNumberChange}
-          maxLength={19}
-          required
-        />
-        {paymentMethodId && (
-          <p className="text-sm text-muted-foreground">
-            {paymentMethodId.toUpperCase()} detectado
-          </p>
-        )}
+      {/* Visualización de la tarjeta */}
+      <div className="relative">
+        <div className={cn(
+          "relative aspect-[1.586/1] w-full max-w-sm mx-auto rounded-2xl p-6 shadow-2xl transition-all duration-500",
+          "bg-gradient-to-br from-zinc-800 via-zinc-900 to-black",
+          cardBrand && "ring-2 ring-emerald-500 ring-offset-2 ring-offset-white dark:ring-offset-zinc-900"
+        )}>
+          {/* Diseño de tarjeta */}
+          <div className="relative h-full flex flex-col justify-between text-white">
+            {/* Logo de la tarjeta */}
+            <div className="flex justify-between items-start">
+              <div className="flex items-center gap-2">
+                <CreditCard className="h-8 w-8 text-yellow-400" />
+              </div>
+              {getCardImage() && (
+                <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+                  <Image
+                    src={getCardImage()!}
+                    alt={cardBrandName}
+                    width={60}
+                    height={40}
+                    className="object-contain"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Chip */}
+            <div className="w-12 h-9 bg-gradient-to-br from-yellow-200 to-yellow-400 rounded-md opacity-80" />
+
+            {/* Número de tarjeta */}
+            <div className="space-y-4">
+              <div className="text-xl md:text-2xl font-mono tracking-wider">
+                {cardNumber || '•••• •••• •••• ••••'}
+              </div>
+
+              <div className="flex justify-between items-end">
+                <div className="space-y-1">
+                  <div className="text-xs text-zinc-400 uppercase">Titular</div>
+                  <div className="text-sm font-medium tracking-wide">
+                    {cardholderName || 'NOMBRE APELLIDO'}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-xs text-zinc-400 uppercase">Vence</div>
+                  <div className="text-sm font-medium">
+                    {expirationDate || 'MM/AA'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Indicador de tarjeta detectada */}
+            {cardBrand && (
+              <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 animate-in fade-in zoom-in duration-300">
+                <div className="bg-emerald-500 text-white px-3 py-1 rounded-full flex items-center gap-1.5 shadow-lg text-xs font-medium">
+                  <CheckCircle2 className="h-3 w-3" />
+                  {cardBrandName} detectada
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="cardholderName">Nombre del titular</Label>
-        <Input
-          id="cardholderName"
-          type="text"
-          placeholder="NOMBRE APELLIDO"
-          value={cardholderName}
-          onChange={(e) => setCardholderName(e.target.value.toUpperCase())}
-          required
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
+      {/* Formulario */}
+      <div className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="expirationDate">Vencimiento</Label>
+          <Label htmlFor="cardNumber" className="text-sm font-medium flex items-center gap-2">
+            <CreditCard className="h-4 w-4 text-zinc-500" />
+            Número de tarjeta
+          </Label>
           <Input
-            id="expirationDate"
+            id="cardNumber"
             type="text"
-            placeholder="MM/AA"
-            value={expirationDate}
-            onChange={handleExpirationDateChange}
-            maxLength={5}
+            placeholder="0000 0000 0000 0000"
+            value={cardNumber}
+            onChange={handleCardNumberChange}
+            maxLength={19}
             required
+            className="text-lg font-mono tracking-wider h-12"
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="securityCode">CVV</Label>
+          <Label htmlFor="cardholderName" className="text-sm font-medium">
+            Nombre del titular
+          </Label>
           <Input
-            id="securityCode"
+            id="cardholderName"
             type="text"
-            placeholder="123"
-            value={securityCode}
-            onChange={(e) => setSecurityCode(e.target.value.replace(/\D/g, ''))}
-            maxLength={4}
+            placeholder="Como aparece en la tarjeta"
+            value={cardholderName}
+            onChange={(e) => setCardholderName(e.target.value.toUpperCase())}
             required
+            className="h-12 uppercase"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="expirationDate" className="text-sm font-medium">
+              Vencimiento
+            </Label>
+            <Input
+              id="expirationDate"
+              type="text"
+              placeholder="MM/AA"
+              value={expirationDate}
+              onChange={handleExpirationDateChange}
+              maxLength={5}
+              required
+              className="text-center font-mono h-12"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="securityCode" className="text-sm font-medium flex items-center gap-2">
+              <Lock className="h-4 w-4 text-zinc-500" />
+              CVV
+            </Label>
+            <Input
+              id="securityCode"
+              type="text"
+              placeholder="123"
+              value={securityCode}
+              onChange={(e) => setSecurityCode(e.target.value.replace(/\D/g, ''))}
+              maxLength={4}
+              required
+              className="text-center font-mono h-12"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="identificationNumber" className="text-sm font-medium">
+            Documento (CI/DNI)
+          </Label>
+          <Input
+            id="identificationNumber"
+            type="text"
+            placeholder="12345678"
+            value={identificationNumber}
+            onChange={(e) => setIdentificationNumber(e.target.value.replace(/\D/g, ''))}
+            required
+            className="h-12"
           />
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="identificationNumber">Documento (CI/DNI)</Label>
-        <Input
-          id="identificationNumber"
-          type="text"
-          placeholder="12345678"
-          value={identificationNumber}
-          onChange={(e) => setIdentificationNumber(e.target.value.replace(/\D/g, ''))}
-          required
-        />
-      </div>
-
-      <div className="pt-4 border-t">
-        <div className="flex justify-between items-center mb-4">
-          <span className="font-semibold">Total a pagar:</span>
-          <span className="text-2xl font-bold">${amount.toLocaleString('es-UY')}</span>
+      {/* Total y botón */}
+      <div className="pt-6 border-t border-zinc-200 dark:border-zinc-800 space-y-4">
+        <div className="flex justify-between items-center">
+          <span className="text-lg font-medium text-zinc-700 dark:text-zinc-300">Total a pagar:</span>
+          <span className="text-3xl font-bold text-zinc-900 dark:text-zinc-50">
+            ${amount.toLocaleString('es-UY')}
+          </span>
         </div>
 
         <Button
           type="submit"
-          className="w-full"
+          size="lg"
+          className={cn(
+            "w-full h-14 text-base font-semibold shadow-lg transition-all duration-300",
+            "bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700",
+            loading && "opacity-50 cursor-not-allowed"
+          )}
           disabled={loading || !paymentMethodId}
         >
           {loading ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Procesando pago...
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Procesando pago seguro...
             </>
           ) : (
-            'Pagar ahora'
+            <>
+              <Lock className="mr-2 h-5 w-5" />
+              Pagar ${amount.toLocaleString('es-UY')}
+            </>
           )}
         </Button>
-      </div>
 
-      <p className="text-xs text-muted-foreground text-center">
-        Pago seguro procesado por Mercado Pago
-      </p>
+        <div className="flex items-center justify-center gap-2 text-xs text-zinc-500">
+          <Lock className="h-3 w-3" />
+          <span>Pago 100% seguro procesado por Mercado Pago</span>
+        </div>
+      </div>
     </form>
   )
 }

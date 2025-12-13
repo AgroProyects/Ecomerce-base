@@ -36,25 +36,21 @@ import { Badge } from '@/components/ui/badge'
 import { CartSummary } from '@/components/store/cart-summary'
 import { PaymentMethodSelector } from '@/components/checkout/PaymentMethodSelector'
 import { MercadoPagoCardForm } from '@/components/checkout/MercadoPagoCardForm'
+import { LocationSelectorModal } from '@/components/checkout/LocationSelectorModal'
+import { CheckoutWizard } from '@/components/checkout/CheckoutWizard'
+import { ReviewStep } from '@/components/checkout/ReviewStep'
 import { useCart, useCartStore, type ShippingInfo } from '@/hooks/use-cart'
 import { processCheckout } from '@/actions/checkout'
 import { checkoutFormSchema, type CheckoutFormInput } from '@/schemas/checkout.schema'
 import { ROUTES } from '@/lib/constants/routes'
 import type { PaymentMethod } from '@/schemas/order.schema'
-import { getDepartmentNames, getLocalitiesByDepartment } from '@/lib/constants/uruguay-locations'
-import {
-  SelectRoot,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils/cn'
 
 const steps = [
   { id: 'contact', label: 'Contacto', icon: User },
   { id: 'shipping', label: 'Envío', icon: MapPin },
+  { id: 'review', label: 'Revisar', icon: FileText },
   { id: 'payment', label: 'Pago', icon: CreditCard },
 ]
 
@@ -82,11 +78,12 @@ export default function CheckoutPage() {
   const [isLoadingShipping, setIsLoadingShipping] = useState(false)
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null)
   const [selectedDepartment, setSelectedDepartment] = useState<string>('')
-  const [availableLocalities, setAvailableLocalities] = useState<string[]>([])
+  const [selectedCity, setSelectedCity] = useState<string>('')
   const [currentStep, setCurrentStep] = useState(0)
   const [showCardForm, setShowCardForm] = useState(false)
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null)
   const [orderTotal, setOrderTotal] = useState(0)
+  const [showLocationModal, setShowLocationModal] = useState(false)
 
   const {
     register,
@@ -106,34 +103,17 @@ export default function CheckoutPage() {
   })
 
   const customerEmail = watch('email')
-  const departments = getDepartmentNames()
 
-  // Update current step based on filled fields
+  // Redirect if cart is empty
   useEffect(() => {
-    const name = watch('name')
-    const email = watch('email')
-    const phone = watch('phone')
-    const street = watch('address.street')
-    const city = watch('address.city')
-
-    if (name && email && phone) {
-      if (street && city) {
-        setCurrentStep(2)
-      } else {
-        setCurrentStep(1)
-      }
-    } else {
-      setCurrentStep(0)
+    if (itemsCount === 0) {
+      router.push(ROUTES.CART)
     }
-  }, [watch('name'), watch('email'), watch('phone'), watch('address.street'), watch('address.city')])
+  }, [itemsCount, router])
 
-  // Update localities and calculate shipping when department changes
+  // Calculate shipping when department changes
   useEffect(() => {
     if (selectedDepartment) {
-      const localities = getLocalitiesByDepartment(selectedDepartment)
-      setAvailableLocalities(localities)
-
-      // Calculate shipping cost
       const calculateShippingCost = async () => {
         setIsLoadingShipping(true)
         try {
@@ -163,13 +143,54 @@ export default function CheckoutPage() {
       }
       calculateShippingCost()
     } else {
-      setAvailableLocalities([])
       setShippingInfo(null)
     }
   }, [selectedDepartment, subtotal, setShippingInfo])
 
+  // Handle location selection from modal
+  const handleLocationSelect = (department: string, city: string) => {
+    setSelectedDepartment(department)
+    setSelectedCity(city)
+    setValue('address.state', department)
+    setValue('address.city', city)
+  }
+
+  // Validate and navigate to next step
+  const handleNext = async () => {
+    let isValid = false
+
+    if (currentStep === 0) {
+      // Validate contact info
+      const name = watch('name')
+      const email = watch('email')
+      const phone = watch('phone')
+      isValid = !!(name && email && phone)
+    } else if (currentStep === 1) {
+      // Validate shipping info
+      const street = watch('address.street')
+      const number = watch('address.number')
+      const state = watch('address.state')
+      const city = watch('address.city')
+      isValid = !!(street && number && state && city)
+    } else if (currentStep === 2) {
+      // Review step - just move forward
+      isValid = true
+    }
+
+    if (isValid) {
+      setCurrentStep(currentStep + 1)
+    } else {
+      toast.error('Por favor completa todos los campos obligatorios')
+    }
+  }
+
+  const handleBack = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1)
+    }
+  }
+
   if (itemsCount === 0) {
-    router.push(ROUTES.CART)
     return null
   }
 
@@ -208,13 +229,10 @@ export default function CheckoutPage() {
         setShowCardForm(true)
         toast.success('Orden creada. Completa los datos de pago.')
       } else {
-        // Otros métodos de pago
+        // Otros métodos de pago - redirigir a página de éxito
         clearCart()
-        if (result.data.redirectUrl) {
-          router.push(result.data.redirectUrl)
-        } else {
-          router.push(`/checkout/success?order_id=${result.data.orderId}`)
-        }
+        toast.success('¡Pedido realizado con éxito!')
+        router.push(`/checkout/success?order_id=${result.data.orderId}`)
       }
     } catch (error) {
       toast.error('Error al procesar el pago')
@@ -226,7 +244,7 @@ export default function CheckoutPage() {
   const handlePaymentSuccess = (paymentId: number) => {
     toast.success('¡Pago procesado exitosamente!')
     clearCart()
-    router.push(`/mi-cuenta/pedidos/${createdOrderId}`)
+    router.push(`/checkout/success?order_id=${createdOrderId}`)
   }
 
   const handlePaymentError = (error: string) => {
@@ -368,8 +386,17 @@ export default function CheckoutPage() {
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Form */}
             <div className="space-y-6 lg:col-span-2">
-              {/* Contact info */}
-              <Card className="overflow-hidden border-0 shadow-sm">
+              {/* Step 0: Contact info */}
+              {currentStep === 0 && (
+                <CheckoutWizard
+                  currentStep={currentStep}
+                  totalSteps={steps.length}
+                  onNext={handleNext}
+                  onBack={handleBack}
+                  isNextDisabled={!watch('name') || !watch('email') || !watch('phone')}
+                  isLoading={isLoading}
+                >
+                  <Card className="overflow-hidden border-0 shadow-sm">
                 <div className="h-1 bg-gradient-to-r from-blue-500 to-indigo-500" />
                 <CardContent className="p-0">
                   <div className="border-b border-zinc-100 bg-zinc-50/50 px-6 py-4 dark:border-zinc-800 dark:bg-zinc-900/50">
@@ -440,9 +467,20 @@ export default function CheckoutPage() {
                   </div>
                 </CardContent>
               </Card>
+                </CheckoutWizard>
+              )}
 
-              {/* Shipping address */}
-              <Card className="overflow-hidden border-0 shadow-sm">
+              {/* Step 1: Shipping address */}
+              {currentStep === 1 && (
+                <CheckoutWizard
+                  currentStep={currentStep}
+                  totalSteps={steps.length}
+                  onNext={handleNext}
+                  onBack={handleBack}
+                  isNextDisabled={!watch('address.street') || !watch('address.number') || !watch('address.state') || !watch('address.city')}
+                  isLoading={isLoading}
+                >
+                  <Card className="overflow-hidden border-0 shadow-sm">
                 <div className="h-1 bg-gradient-to-r from-violet-500 to-purple-500" />
                 <CardContent className="p-0">
                   <div className="border-b border-zinc-100 bg-zinc-50/50 px-6 py-4 dark:border-zinc-800 dark:bg-zinc-900/50">
@@ -511,76 +549,39 @@ export default function CheckoutPage() {
                         />
                       </div>
 
-                      {/* Departamento */}
-                      <div className="space-y-2">
-                        <Label htmlFor="department" className="flex items-center gap-2">
+                      {/* Ubicación - Botón para abrir modal */}
+                      <div className="space-y-2 md:col-span-2">
+                        <Label className="flex items-center gap-2">
                           <MapPinned className="h-4 w-4 text-zinc-400" />
-                          Departamento <span className="text-red-500">*</span>
+                          Departamento y Ciudad <span className="text-red-500">*</span>
                         </Label>
-                        <Controller
-                          name="address.state"
-                          control={control}
-                          render={({ field }) => (
-                            <SelectRoot
-                              value={field.value}
-                              onValueChange={(value) => {
-                                field.onChange(value)
-                                setSelectedDepartment(value)
-                                setValue('address.city', '')
-                              }}
-                            >
-                              <SelectTrigger
-                                id="department"
-                                className={errors.address?.state ? 'border-red-500' : ''}
-                              >
-                                <SelectValue placeholder="Selecciona un departamento" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {departments.map((dept) => (
-                                  <SelectItem key={dept} value={dept}>
-                                    {dept}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </SelectRoot>
+                        <button
+                          type="button"
+                          onClick={() => setShowLocationModal(true)}
+                          className={cn(
+                            "flex h-10 w-full items-center justify-between rounded-md border px-3 py-2 text-sm",
+                            "hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 focus-visible:ring-offset-2",
+                            errors.address?.state || errors.address?.city
+                              ? "border-red-500"
+                              : "border-zinc-200 dark:border-zinc-800"
                           )}
-                        />
-                        {errors.address?.state && (
-                          <p className="text-sm text-red-500">{errors.address.state.message}</p>
-                        )}
-                      </div>
-
-                      {/* Localidad */}
-                      <div className="space-y-2">
-                        <Label htmlFor="locality" className="flex items-center gap-2">
-                          Ciudad/Localidad <span className="text-red-500">*</span>
-                        </Label>
-                        <Controller
-                          name="address.city"
-                          control={control}
-                          render={({ field }) => (
-                            <SelectRoot value={field.value} onValueChange={field.onChange}>
-                              <SelectTrigger
-                                id="locality"
-                                className={errors.address?.city ? 'border-red-500' : ''}
-                                disabled={!selectedDepartment}
-                              >
-                                <SelectValue
-                                  placeholder={selectedDepartment ? 'Selecciona una localidad' : 'Primero selecciona un departamento'}
-                                />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {availableLocalities.map((locality) => (
-                                  <SelectItem key={locality} value={locality}>
-                                    {locality}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </SelectRoot>
-                          )}
-                        />
-                        {errors.address?.city && (
-                          <p className="text-sm text-red-500">{errors.address.city.message}</p>
+                        >
+                          <span className={cn(
+                            selectedDepartment && selectedCity
+                              ? "text-zinc-900 dark:text-zinc-50"
+                              : "text-zinc-500"
+                          )}>
+                            {selectedDepartment && selectedCity
+                              ? `${selectedCity}, ${selectedDepartment}`
+                              : "Selecciona tu ubicación"}
+                          </span>
+                          <ChevronRight className="h-4 w-4 text-zinc-400" />
+                        </button>
+                        {(errors.address?.state || errors.address?.city) && (
+                          <p className="text-sm text-red-500">
+                            {errors.address?.state?.message || errors.address?.city?.message}
+                          </p>
                         )}
                       </div>
 
@@ -647,8 +648,8 @@ export default function CheckoutPage() {
                 </CardContent>
               </Card>
 
-              {/* Notes */}
-              <Card className="overflow-hidden border-0 shadow-sm">
+                  {/* Notes */}
+                  <Card className="overflow-hidden border-0 shadow-sm">
                 <div className="h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
                 <CardContent className="p-0">
                   <div className="border-b border-zinc-100 bg-zinc-50/50 px-6 py-4 dark:border-zinc-800 dark:bg-zinc-900/50">
@@ -675,9 +676,50 @@ export default function CheckoutPage() {
                   </div>
                 </CardContent>
               </Card>
+                </CheckoutWizard>
+              )}
 
-              {/* Payment Method */}
-              <Card className="overflow-hidden border-0 shadow-sm">
+              {/* Step 2: Review */}
+              {currentStep === 2 && (
+                <CheckoutWizard
+                  currentStep={currentStep}
+                  totalSteps={steps.length}
+                  onNext={handleNext}
+                  onBack={handleBack}
+                  isLoading={isLoading}
+                >
+                  <ReviewStep
+                    formData={{
+                      name: watch('name'),
+                      email: watch('email'),
+                      phone: watch('phone'),
+                      address: {
+                        street: watch('address.street'),
+                        number: watch('address.number'),
+                        apartment: watch('address.apartment') ?? undefined,
+                        floor: watch('address.floor') ?? undefined,
+                        city: watch('address.city'),
+                        state: watch('address.state'),
+                        postal_code: watch('address.postal_code') ?? undefined,
+                      },
+                      notes: watch('notes') ?? undefined,
+                    }}
+                    onEdit={(step) => setCurrentStep(step)}
+                  />
+                </CheckoutWizard>
+              )}
+
+              {/* Step 3: Payment Method */}
+              {currentStep === 3 && (
+                <CheckoutWizard
+                  currentStep={currentStep}
+                  totalSteps={steps.length}
+                  onNext={handleNext}
+                  onBack={handleBack}
+                  hideNavigation={true}
+                  isLoading={isLoading}
+                >
+                  <Card className="overflow-hidden border-0 shadow-sm">
                 <div className="h-1 bg-gradient-to-r from-emerald-500 to-teal-500" />
                 <CardContent className="p-0">
                   <div className="border-b border-zinc-100 bg-zinc-50/50 px-6 py-4 dark:border-zinc-800 dark:bg-zinc-900/50">
@@ -712,6 +754,8 @@ export default function CheckoutPage() {
                   </div>
                 </CardContent>
               </Card>
+                </CheckoutWizard>
+              )}
             </div>
 
             {/* Summary */}
@@ -719,17 +763,19 @@ export default function CheckoutPage() {
               <div className="sticky top-24 space-y-4">
                 <CartSummary showCheckoutButton={false} customerEmail={customerEmail} />
 
-                <Card className="overflow-hidden border-0 shadow-sm">
-                  <CardContent className="p-4">
-                    <Button
-                      type="submit"
-                      size="lg"
-                      className={cn(
-                        "w-full gap-2 text-base font-semibold",
-                        selectedPaymentMethod === 'mercadopago' && "bg-[#009EE3] hover:bg-[#0087c9]"
-                      )}
-                      disabled={isLoading || !selectedPaymentMethod}
-                    >
+                {/* Only show submit button on payment step (step 3) */}
+                {currentStep === 3 && (
+                  <Card className="overflow-hidden border-0 shadow-sm">
+                    <CardContent className="p-4">
+                      <Button
+                        type="submit"
+                        size="lg"
+                        className={cn(
+                          "w-full gap-2 text-base font-semibold",
+                          selectedPaymentMethod === 'mercadopago' && "bg-[#009EE3] hover:bg-[#0087c9]"
+                        )}
+                        disabled={isLoading || !selectedPaymentMethod}
+                      >
                       {isLoading ? (
                         <>
                           <Loader2 className="h-5 w-5 animate-spin" />
@@ -752,24 +798,25 @@ export default function CheckoutPage() {
                       )}
                     </Button>
 
-                    {selectedPaymentMethod && (
-                      <p className="mt-3 text-center text-xs text-zinc-500">
-                        {selectedPaymentMethod === 'mercadopago' && (
-                          <>
-                            <Lock className="inline h-3 w-3 mr-1" />
-                            Serás redirigido a Mercado Pago para completar el pago de forma segura
-                          </>
-                        )}
-                        {selectedPaymentMethod === 'bank_transfer' && (
-                          'Recibirás las instrucciones para realizar la transferencia'
-                        )}
-                        {selectedPaymentMethod === 'cash_on_delivery' && (
-                          'Pagarás en efectivo cuando recibas tu pedido'
-                        )}
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
+                      {selectedPaymentMethod && (
+                        <p className="mt-3 text-center text-xs text-zinc-500">
+                          {selectedPaymentMethod === 'mercadopago' && (
+                            <>
+                              <Lock className="inline h-3 w-3 mr-1" />
+                              Serás redirigido a Mercado Pago para completar el pago de forma segura
+                            </>
+                          )}
+                          {selectedPaymentMethod === 'bank_transfer' && (
+                            'Recibirás las instrucciones para realizar la transferencia'
+                          )}
+                          {selectedPaymentMethod === 'cash_on_delivery' && (
+                            'Pagarás en efectivo cuando recibas tu pedido'
+                          )}
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Trust Badges */}
                 <Card className="overflow-hidden border-0 shadow-sm bg-zinc-50 dark:bg-zinc-800/50">
@@ -790,6 +837,15 @@ export default function CheckoutPage() {
             </div>
           </div>
         </form>
+
+        {/* Location Selector Modal */}
+        <LocationSelectorModal
+          isOpen={showLocationModal}
+          onClose={() => setShowLocationModal(false)}
+          onSelect={handleLocationSelect}
+          selectedDepartment={selectedDepartment}
+          selectedCity={selectedCity}
+        />
       </div>
     </div>
   )

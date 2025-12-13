@@ -14,7 +14,8 @@
       "Bash(findstr:*)",
       "Bash(npm audit:*)",
       "Bash(find:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(wc -l:*)"
     ],
     "deny": [],
     "ask": []

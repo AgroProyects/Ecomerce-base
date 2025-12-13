@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { createPortal } from 'react-dom'
 import { cn } from '@/lib/utils/cn'
 import { ChevronDown, Check } from 'lucide-react'
 
@@ -86,6 +87,7 @@ interface SelectContextValue {
   onValueChange: (value: string) => void
   open: boolean
   setOpen: (open: boolean) => void
+  triggerRef: React.MutableRefObject<HTMLButtonElement | null>
 }
 
 const SelectContext = React.createContext<SelectContextValue | null>(null)
@@ -109,6 +111,7 @@ interface SelectRootProps {
 export function SelectRoot({ value: controlledValue, defaultValue = '', onValueChange, children }: SelectRootProps) {
   const [uncontrolledValue, setUncontrolledValue] = React.useState(defaultValue)
   const [open, setOpen] = React.useState(false)
+  const triggerRef = React.useRef<HTMLButtonElement | null>(null)
 
   const isControlled = controlledValue !== undefined
   const value = isControlled ? controlledValue : uncontrolledValue
@@ -122,7 +125,7 @@ export function SelectRoot({ value: controlledValue, defaultValue = '', onValueC
   }, [isControlled, onValueChange])
 
   return (
-    <SelectContext.Provider value={{ value, onValueChange: handleValueChange, open, setOpen }}>
+    <SelectContext.Provider value={{ value, onValueChange: handleValueChange, open, setOpen, triggerRef }}>
       <div className="relative">{children}</div>
     </SelectContext.Provider>
   )
@@ -135,11 +138,24 @@ interface SelectTriggerProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 export const SelectTrigger = React.forwardRef<HTMLButtonElement, SelectTriggerProps>(
   ({ className, children, ...props }, ref) => {
-    const { open, setOpen } = useSelectContext()
+    const { open, setOpen, triggerRef } = useSelectContext()
+
+    const setRefs = React.useCallback(
+      (node: HTMLButtonElement | null) => {
+        // Set both refs
+        triggerRef.current = node
+        if (typeof ref === 'function') {
+          ref(node)
+        } else if (ref) {
+          ref.current = node
+        }
+      },
+      [ref, triggerRef]
+    )
 
     return (
       <button
-        ref={ref}
+        ref={setRefs}
         type="button"
         onClick={() => setOpen(!open)}
         className={cn(
@@ -176,36 +192,96 @@ interface SelectContentProps {
 }
 
 export function SelectContent({ children, className }: SelectContentProps) {
-  const { open, setOpen } = useSelectContext()
+  const { open, setOpen, triggerRef } = useSelectContext()
   const contentRef = React.useRef<HTMLDivElement>(null)
+  const [mounted, setMounted] = React.useState(false)
+  const [position, setPosition] = React.useState({ top: 0, left: 0, width: 0 })
 
   React.useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Actualizar posición cuando se abre
+  React.useEffect(() => {
+    if (open && mounted && triggerRef.current) {
+      const updatePosition = () => {
+        if (!triggerRef.current) return
+
+        const rect = triggerRef.current.getBoundingClientRect()
+        setPosition({
+          top: rect.bottom + window.scrollY + 4,
+          left: rect.left + window.scrollX,
+          width: rect.width,
+        })
+      }
+
+      // Actualizar inmediatamente y en el próximo frame
+      updatePosition()
+      requestAnimationFrame(updatePosition)
+
+      // Escuchar eventos
+      const handleScroll = () => updatePosition()
+      const handleResize = () => updatePosition()
+
+      window.addEventListener('scroll', handleScroll, true)
+      window.addEventListener('resize', handleResize)
+
+      return () => {
+        window.removeEventListener('scroll', handleScroll, true)
+        window.removeEventListener('resize', handleResize)
+      }
+    }
+  }, [open, mounted, triggerRef])
+
+  // Cerrar al hacer click afuera
+  React.useEffect(() => {
+    if (!open) return
+
     const handleClickOutside = (event: MouseEvent) => {
-      if (contentRef.current && !contentRef.current.contains(event.target as Node)) {
+      const target = event.target as Node
+
+      if (
+        contentRef.current &&
+        !contentRef.current.contains(target) &&
+        triggerRef.current &&
+        !triggerRef.current.contains(target)
+      ) {
         setOpen(false)
       }
     }
 
-    if (open) {
+    // Pequeño delay para evitar que el click que abre el select lo cierre inmediatamente
+    const timeoutId = setTimeout(() => {
       document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, 0)
+
+    return () => {
+      clearTimeout(timeoutId)
+      document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [open, setOpen])
+  }, [open, setOpen, triggerRef])
 
-  if (!open) return null
+  if (!open || !mounted) return null
 
-  return (
+  const content = (
     <div
       ref={contentRef}
       className={cn(
-        'absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-zinc-200 bg-white py-1 shadow-lg',
+        'fixed z-[9999] max-h-60 overflow-auto rounded-md border border-zinc-200 bg-white py-1 shadow-lg',
         'dark:border-zinc-800 dark:bg-zinc-950',
         className
       )}
+      style={{
+        top: `${position.top}px`,
+        left: `${position.left}px`,
+        width: `${position.width}px`,
+      }}
     >
       {children}
     </div>
   )
+
+  return createPortal(content, document.body)
 }
 
 // SelectItem

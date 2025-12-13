@@ -15,6 +15,10 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: '*.supabase.in',
       },
+      {
+        protocol: 'https',
+        hostname: 'http2.mlstatic.com',
+      },
     ],
     // Formatos modernos con mejor compresión
     formats: ['image/avif', 'image/webp'],

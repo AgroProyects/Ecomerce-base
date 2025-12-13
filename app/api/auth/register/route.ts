@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { z } from 'zod'
+import crypto from 'crypto'
+import { render } from '@react-email/render'
+import { sendEmail } from '@/lib/email/send-email'
+import EmailVerification from '@/lib/email/templates/email-verification'
 
 const registerSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
@@ -28,7 +32,7 @@ export async function POST(request: NextRequest) {
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email,
       password,
-      email_confirm: true, // Auto-confirm email for now
+      email_confirm: false, // Require email confirmation
       user_metadata: { name },
     })
 
@@ -55,12 +59,65 @@ export async function POST(request: NextRequest) {
     }
 
     // The customer record is automatically created by the database trigger
-    // No need to manually insert into customers table
+    // Now generate verification token and send email via SMTP
 
-    return NextResponse.json(
-      { message: 'Cuenta creada exitosamente' },
-      { status: 201 }
-    )
+    try {
+      // Generate secure token
+      const token = crypto.randomBytes(32).toString('hex')
+      const expiresAt = new Date()
+      expiresAt.setHours(expiresAt.getHours() + 24) // Token expires in 24 hours
+
+      // Store token in database
+      const { error: tokenError } = await supabase
+        .from('email_verification_tokens')
+        .insert({
+          user_id: authData.user.id,
+          token,
+          email: authData.user.email!,
+          expires_at: expiresAt.toISOString(),
+        })
+
+      if (tokenError) {
+        console.error('Error creating verification token:', tokenError)
+        // Don't fail the registration, just log the error
+      }
+
+      // Send verification email via SMTP
+      const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/confirm?token=${token}`
+
+      const html = await render(
+        EmailVerification({
+          name,
+          verificationUrl,
+        })
+      )
+
+      await sendEmail({
+        to: authData.user.email!,
+        subject: '✓ Confirma tu email - Bienvenido a la tienda',
+        html,
+      })
+
+      return NextResponse.json(
+        {
+          message: 'Cuenta creada exitosamente. Por favor verifica tu email para activar tu cuenta.',
+          requiresEmailVerification: true,
+          email: authData.user.email,
+        },
+        { status: 201 }
+      )
+    } catch (emailError) {
+      console.error('Error sending verification email:', emailError)
+      // User is created but email failed - they can request a new one later
+      return NextResponse.json(
+        {
+          message: 'Cuenta creada pero hubo un error al enviar el email. Por favor contacta soporte.',
+          requiresEmailVerification: true,
+          email: authData.user.email,
+        },
+        { status: 201 }
+      )
+    }
   } catch (error) {
     console.error('Register error:', error)
     return NextResponse.json(

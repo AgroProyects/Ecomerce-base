@@ -19,57 +19,40 @@ export function EmailConfirmation() {
   useEffect(() => {
     const confirmEmail = async () => {
       try {
-        // Get token from URL (Supabase sends token_hash and type)
-        const token_hash = searchParams.get('token_hash')
-        const type = searchParams.get('type')
+        // Get token from URL (our custom token system)
+        const token = searchParams.get('token')
 
-        if (!token_hash || type !== 'email') {
+        if (!token) {
           setState('error')
           setErrorMessage('Link de confirmación inválido')
           return
         }
 
-        const supabase = createClient()
-
-        // Verify OTP with Supabase
-        const { data, error } = await supabase.auth.verifyOtp({
-          token_hash,
-          type: 'email',
+        // Call our verification API
+        const response = await fetch('/api/auth/verify-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token }),
         })
 
-        if (error) {
-          console.error('Error verifying email:', error)
+        const data = await response.json()
 
-          // Check if already confirmed
-          if (error.message.includes('already confirmed') || error.message.includes('expired')) {
+        if (!response.ok) {
+          console.error('Error verifying email:', data.error)
+
+          if (data.error.includes('expirado')) {
             setState('already_confirmed')
+            setErrorMessage('El enlace ha expirado. Por favor solicita uno nuevo.')
+          } else if (data.error.includes('inválido')) {
+            setState('error')
+            setErrorMessage('Link de confirmación inválido')
           } else {
             setState('error')
-            setErrorMessage(error.message || 'Error al confirmar el email')
+            setErrorMessage(data.error || 'Error al confirmar el email')
           }
           return
-        }
-
-        // Update customer record
-        if (data.user?.id) {
-          const { error: updateError } = await (supabase as any)
-            .from('customers')
-            .update({
-              email_verified: true,
-              email_verified_at: new Date().toISOString(),
-            })
-            .eq('id', data.user.id)
-
-          if (updateError) {
-            console.error('Error updating customer:', updateError)
-          }
-
-          // Log verification attempt
-          await (supabase as any).from('email_verification_attempts').insert({
-            customer_id: data.user.id,
-            email: data.user.email || '',
-            verified_at: new Date().toISOString(),
-          })
         }
 
         setState('success')
