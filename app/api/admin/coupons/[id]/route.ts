@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth/config'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { requireAdmin } from '@/lib/middleware/auth-validation'
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -8,10 +8,9 @@ interface RouteParams {
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await auth()
-    if (!session?.user || !['admin', 'super_admin'].includes(session.user.role || '')) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
+    // Validar que el usuario sea admin (protección CSRF automática con NextAuth)
+    const sessionOrError = await requireAdmin()
+    if (sessionOrError instanceof NextResponse) return sessionOrError
 
     const { id } = await params
     const supabase = createAdminClient()
@@ -35,10 +34,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await auth()
-    if (!session?.user || !['admin', 'super_admin'].includes(session.user.role || '')) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
+    // Validar que el usuario sea admin (protección CSRF automática con NextAuth)
+    const sessionOrError = await requireAdmin()
+    if (sessionOrError instanceof NextResponse) return sessionOrError
 
     const { id } = await params
     const body = await request.json()
@@ -93,10 +91,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await auth()
-    if (!session?.user || !['admin', 'super_admin'].includes(session.user.role || '')) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
+    // Validar que el usuario sea admin (protección CSRF automática con NextAuth)
+    const sessionOrError = await requireAdmin()
+    if (sessionOrError instanceof NextResponse) return sessionOrError
 
     const { id } = await params
     const body = await request.json()
@@ -123,10 +120,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await auth()
-    if (!session?.user || !['admin', 'super_admin'].includes(session.user.role || '')) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
+    // Validar que el usuario sea admin (protección CSRF automática con NextAuth)
+    const sessionOrError = await requireAdmin()
+    if (sessionOrError instanceof NextResponse) return sessionOrError
 
     const { id } = await params
     const supabase = createAdminClient()

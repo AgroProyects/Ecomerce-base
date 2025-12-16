@@ -8,6 +8,7 @@ import {
   type CreateCategoryInput,
   type UpdateCategoryInput,
 } from '@/schemas/category.schema'
+import { invalidateCache, CacheKey } from '@/lib/cache/redis'
 import { slugify } from '@/lib/utils/slug'
 import type { ApiResponse } from '@/types/api'
 import type { Category } from '@/types/database'
@@ -65,6 +66,14 @@ export async function createCategory(
         error: 'Error al crear la categoría',
       }
     }
+
+    // Invalidar cache de categorías y productos (las categorías afectan productos)
+    await invalidateCache(`${CacheKey.CATEGORIES}:*`)
+    await invalidateCache(`${CacheKey.PRODUCTS}:*`)
+
+    // Invalidar cache de categorías y productos
+    await invalidateCache(`${CacheKey.CATEGORIES}:*`)
+    await invalidateCache(`${CacheKey.PRODUCTS}:*`)
 
     revalidatePath('/admin/categories')
     revalidatePath('/category')
@@ -155,6 +164,10 @@ export async function updateCategory(
       }
     }
 
+    // Invalidar cache de categorías y productos
+    await invalidateCache(`${CacheKey.CATEGORIES}:*`)
+    await invalidateCache(`${CacheKey.PRODUCTS}:*`)
+
     revalidatePath('/admin/categories')
     revalidatePath('/category')
     revalidatePath('/')
@@ -224,6 +237,10 @@ export async function deleteCategory(id: string): Promise<ApiResponse<void>> {
         error: 'Error al eliminar la categoría',
       }
     }
+
+    // Invalidar cache de categorías y productos
+    await invalidateCache(`${CacheKey.CATEGORIES}:*`)
+    await invalidateCache(`${CacheKey.PRODUCTS}:*`)
 
     revalidatePath('/admin/categories')
     revalidatePath('/category')

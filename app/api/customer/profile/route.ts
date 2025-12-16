@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth/config'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { requireAuth } from '@/lib/middleware/auth-validation'
 import { z } from 'zod'
 
 const profileSchema = z.object({
@@ -12,10 +12,11 @@ const profileSchema = z.object({
 
 export async function GET() {
   try {
-    const session = await auth()
-    if (!session) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
+    // Validar que el usuario esté autenticado (protección CSRF automática con NextAuth)
+    const sessionOrError = await requireAuth()
+    if (sessionOrError instanceof NextResponse) return sessionOrError
+
+    const session = sessionOrError
 
     const supabase = createAdminClient()
 
@@ -41,10 +42,11 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
+    // Validar que el usuario esté autenticado (protección CSRF automática con NextAuth)
+    const sessionOrError = await requireAuth()
+    if (sessionOrError instanceof NextResponse) return sessionOrError
+
+    const session = sessionOrError
 
     const body = await request.json()
     const result = profileSchema.safeParse(body)

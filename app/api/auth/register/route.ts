@@ -5,6 +5,8 @@ import crypto from 'crypto'
 import { render } from '@react-email/render'
 import { sendEmail } from '@/lib/email/send-email'
 import EmailVerification from '@/lib/email/templates/email-verification'
+import { ratelimit, getIdentifier } from '@/lib/middleware/rate-limit'
+import * as Sentry from '@sentry/nextjs'
 
 const registerSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
@@ -14,6 +16,28 @@ const registerSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // 1. Aplicar rate limiting
+    const identifier = getIdentifier(request)
+    const { success, limit, reset, remaining } = await ratelimit.auth.limit(identifier)
+
+    if (!success) {
+      return NextResponse.json(
+        {
+          error: 'Demasiados intentos. Por favor intenta de nuevo más tarde.',
+          retryAfter: Math.ceil((reset - Date.now()) / 1000)
+        },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': limit.toString(),
+            'X-RateLimit-Remaining': remaining.toString(),
+            'X-RateLimit-Reset': reset.toString(),
+          }
+        }
+      )
+    }
+
+    // 2. Continuar con la lógica normal
     const body = await request.json()
 
     const result = registerSchema.safeParse(body)
@@ -108,6 +132,21 @@ export async function POST(request: NextRequest) {
       )
     } catch (emailError) {
       console.error('Error sending verification email:', emailError)
+
+      // Capturar error de email en Sentry
+      Sentry.captureException(emailError, {
+        tags: {
+          module: 'auth',
+          endpoint: '/api/auth/register',
+          error_type: 'email_sending',
+        },
+        extra: {
+          userId: authData.user.id,
+          // NO incluir el email completo por privacidad
+        },
+        level: 'warning',
+      })
+
       // User is created but email failed - they can request a new one later
       return NextResponse.json(
         {
@@ -120,6 +159,16 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error('Register error:', error)
+
+    // Capturar error crítico en Sentry
+    Sentry.captureException(error, {
+      tags: {
+        module: 'auth',
+        endpoint: '/api/auth/register',
+      },
+      level: 'error',
+    })
+
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

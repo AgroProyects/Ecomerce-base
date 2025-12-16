@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { z } from 'zod'
+import { ratelimit, getIdentifier } from '@/lib/middleware/rate-limit'
 
 const verifySchema = z.object({
   token: z.string().min(1, 'Token requerido'),
@@ -8,6 +9,28 @@ const verifySchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    // 1. Aplicar rate limiting
+    const identifier = await getIdentifier(request)
+    const { success, limit, reset, remaining } = await ratelimit.verification.limit(identifier)
+
+    if (!success) {
+      return NextResponse.json(
+        {
+          error: 'Demasiados intentos. Por favor intenta de nuevo más tarde.',
+          retryAfter: Math.ceil((reset - Date.now()) / 1000)
+        },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': limit.toString(),
+            'X-RateLimit-Remaining': remaining.toString(),
+            'X-RateLimit-Reset': reset.toString(),
+          }
+        }
+      )
+    }
+
+    // 2. Continuar con la lógica normal
     const body = await request.json()
     const result = verifySchema.safeParse(body)
 

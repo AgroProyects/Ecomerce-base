@@ -14,6 +14,7 @@ import {
 } from '@/schemas/order.schema'
 import type { ApiResponse } from '@/types/api'
 import type { Order } from '@/types/database'
+import * as Sentry from '@sentry/nextjs'
 
 export async function createOrder(
   input: CreateOrderInput
@@ -130,6 +131,19 @@ export async function createOrder(
     }
   } catch (error) {
     console.error('Error in createOrder:', error)
+
+    // Capturar error en Sentry
+    Sentry.captureException(error, {
+      tags: {
+        module: 'orders',
+        action: 'createOrder',
+      },
+      extra: {
+        itemsCount: input.items?.length || 0,
+      },
+      level: 'error',
+    })
+
     return {
       success: false,
       error: 'Error interno del servidor',

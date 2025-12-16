@@ -6,6 +6,7 @@ import { createProductSchema, type CreateProductInput } from '@/schemas/product.
 import { slugify } from '@/lib/utils/slug'
 import type { ApiResponse } from '@/types/api'
 import type { Product, Json } from '@/types/database'
+import { invalidateCache, CacheKey } from '@/lib/cache/redis'
 
 export async function createProduct(
   input: CreateProductInput
@@ -81,7 +82,10 @@ export async function createProduct(
       }
     }
 
-    // Revalidar cache
+    // Invalidar cache de productos
+    await invalidateCache(`${CacheKey.PRODUCTS}:*`)
+
+    // Revalidar cache de Next.js
     revalidatePath('/admin/products')
     revalidatePath('/products')
     revalidatePath('/')

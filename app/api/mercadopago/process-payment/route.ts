@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createPayment } from '@/lib/mercadopago/checkout-api'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { ratelimit, getIdentifier } from '@/lib/middleware/rate-limit'
+import * as Sentry from '@sentry/nextjs'
 
 /**
  * Endpoint para procesar pagos con Checkout API de Mercado Pago
@@ -8,6 +10,28 @@ import { createAdminClient } from '@/lib/supabase/admin'
  */
 export async function POST(request: NextRequest) {
   try {
+    // 1. Aplicar rate limiting
+    const identifier = getIdentifier(request)
+    const { success, limit, reset, remaining } = await ratelimit.checkout.limit(identifier)
+
+    if (!success) {
+      return NextResponse.json(
+        {
+          error: 'Demasiados intentos. Por favor intenta de nuevo más tarde.',
+          retryAfter: Math.ceil((reset - Date.now()) / 1000)
+        },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': limit.toString(),
+            'X-RateLimit-Remaining': remaining.toString(),
+            'X-RateLimit-Reset': reset.toString(),
+          }
+        }
+      )
+    }
+
+    // 2. Continuar con la lógica normal
     const body = await request.json()
 
     const {
@@ -121,6 +145,20 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('=== ERROR AL PROCESAR PAGO ===')
     console.error('Error:', error)
+
+    // Capturar error en Sentry con contexto útil
+    Sentry.captureException(error, {
+      tags: {
+        module: 'checkout',
+        endpoint: '/api/mercadopago/process-payment',
+        payment_method: 'mercadopago',
+      },
+      extra: {
+        hasBody: !!request.body,
+        // NO incluir datos sensibles como token o tarjeta
+      },
+      level: 'error',
+    })
 
     return NextResponse.json(
       {

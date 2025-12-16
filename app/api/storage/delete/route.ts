@@ -1,13 +1,36 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import {
   deleteFile,
   deleteMultipleFiles,
   STORAGE_BUCKETS,
   type StorageBucket,
 } from '@/lib/storage';
+import { ratelimit, getIdentifier } from '@/lib/middleware/rate-limit';
 
-export async function DELETE(request: Request) {
+export async function DELETE(request: NextRequest) {
   try {
+    // 1. Aplicar rate limiting
+    const identifier = await getIdentifier(request)
+    const { success, limit, reset, remaining } = await ratelimit.delete.limit(identifier)
+
+    if (!success) {
+      return NextResponse.json(
+        {
+          error: 'Demasiados intentos. Por favor intenta de nuevo más tarde.',
+          retryAfter: Math.ceil((reset - Date.now()) / 1000)
+        },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': limit.toString(),
+            'X-RateLimit-Remaining': remaining.toString(),
+            'X-RateLimit-Reset': reset.toString(),
+          }
+        }
+      )
+    }
+
+    // 2. Continuar con la lógica normal
     const { bucket, path, paths } = await request.json();
 
     if (!bucket || !Object.values(STORAGE_BUCKETS).includes(bucket)) {

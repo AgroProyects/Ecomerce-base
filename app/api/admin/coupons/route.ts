@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth/config'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { requireAdmin } from '@/lib/middleware/auth-validation'
 
 export async function GET() {
   try {
-    const session = await auth()
-    if (!session?.user || !['admin', 'super_admin'].includes(session.user.role || '')) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
+    // Validar que el usuario sea admin (protección CSRF automática con NextAuth)
+    const sessionOrError = await requireAdmin()
+    if (sessionOrError instanceof NextResponse) return sessionOrError
 
     const supabase = createAdminClient()
     const { data: coupons, error } = await supabase
@@ -26,10 +25,9 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session?.user || !['admin', 'super_admin'].includes(session.user.role || '')) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
+    // Validar que el usuario sea admin (protección CSRF automática con NextAuth)
+    const sessionOrError = await requireAdmin()
+    if (sessionOrError instanceof NextResponse) return sessionOrError
 
     const body = await request.json()
     const supabase = createAdminClient()

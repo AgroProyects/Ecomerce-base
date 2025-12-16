@@ -4,11 +4,18 @@ import { createClient } from '@/lib/supabase/server'
 import type { Product, ProductVariant } from '@/types/database'
 import type { ProductsQueryParams, PaginatedResponse } from '@/types/api'
 import { PAGINATION } from '@/lib/constants/config'
+import { getCachedData, CacheTTL, CacheKey } from '@/lib/cache/redis'
 
 export async function getProducts(
   params: ProductsQueryParams = {}
 ): Promise<PaginatedResponse<Product>> {
-  const supabase = await createClient()
+  // Crear cache key único basado en parámetros
+  const cacheKey = `${CacheKey.PRODUCTS}:list:${JSON.stringify(params)}`
+
+  return getCachedData(
+    cacheKey,
+    async () => {
+      const supabase = await createClient()
 
   const {
     page = 1,
@@ -86,57 +93,76 @@ export async function getProducts(
   const totalItems = count || 0
   const totalPages = Math.ceil(totalItems / pageSize)
 
-  return {
-    data: data as Product[],
-    pagination: {
-      page,
-      pageSize,
-      totalItems,
-      totalPages,
-      hasMore: page < totalPages,
+      return {
+        data: data as Product[],
+        pagination: {
+          page,
+          pageSize,
+          totalItems,
+          totalPages,
+          hasMore: page < totalPages,
+        },
+      }
     },
-  }
+    CacheTTL.PRODUCTS // 5 minutos
+  )
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
-  const supabase = await createClient()
+  const cacheKey = `${CacheKey.PRODUCTS}:slug:${slug}`
 
-  const { data, error } = await supabase
-    .from('products')
-    .select('*, categories(id, name, slug)')
-    .eq('slug', slug)
-    .eq('is_active', true)
-    .single()
+  return getCachedData(
+    cacheKey,
+    async () => {
+      const supabase = await createClient()
 
-  if (error) {
-    if (error.code === 'PGRST116') {
-      return null
-    }
-    console.error('Error fetching product:', error)
-    throw new Error('Error al obtener el producto')
-  }
+      const { data, error } = await supabase
+        .from('products')
+        .select('*, categories(id, name, slug)')
+        .eq('slug', slug)
+        .eq('is_active', true)
+        .single()
 
-  return data as Product
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return null
+        }
+        console.error('Error fetching product:', error)
+        throw new Error('Error al obtener el producto')
+      }
+
+      return data as Product
+    },
+    CacheTTL.PRODUCTS // 5 minutos
+  )
 }
 
 export async function getProductById(id: string): Promise<Product | null> {
-  const supabase = await createClient()
+  const cacheKey = `${CacheKey.PRODUCTS}:id:${id}`
 
-  const { data, error } = await supabase
-    .from('products')
-    .select('*, categories(id, name, slug)')
-    .eq('id', id)
-    .single()
+  return getCachedData(
+    cacheKey,
+    async () => {
+      const supabase = await createClient()
 
-  if (error) {
-    if (error.code === 'PGRST116') {
-      return null
-    }
-    console.error('Error fetching product:', error)
-    throw new Error('Error al obtener el producto')
-  }
+      const { data, error } = await supabase
+        .from('products')
+        .select('*, categories(id, name, slug)')
+        .eq('id', id)
+        .single()
 
-  return data as Product
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return null
+        }
+        console.error('Error fetching product:', error)
+        throw new Error('Error al obtener el producto')
+      }
+
+      return data as Product
+    },
+    CacheTTL.PRODUCTS // 5 minutos
+  )
 }
 
 export async function getProductVariants(productId: string): Promise<ProductVariant[]> {

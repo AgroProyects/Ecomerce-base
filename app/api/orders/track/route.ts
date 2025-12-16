@@ -1,8 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { ratelimit, getIdentifier } from '@/lib/middleware/rate-limit'
 
 export async function GET(request: NextRequest) {
   try {
+    // 1. Aplicar rate limiting
+    const identifier = await getIdentifier(request)
+    const { success, limit, reset, remaining } = await ratelimit.tracking.limit(identifier)
+
+    if (!success) {
+      return NextResponse.json(
+        {
+          error: 'Demasiados intentos. Por favor intenta de nuevo más tarde.',
+          retryAfter: Math.ceil((reset - Date.now()) / 1000)
+        },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': limit.toString(),
+            'X-RateLimit-Remaining': remaining.toString(),
+            'X-RateLimit-Reset': reset.toString(),
+          }
+        }
+      )
+    }
+
+    // 2. Continuar con la lógica normal
     const { searchParams } = new URL(request.url)
     const orderNumber = searchParams.get('order')?.trim()
     const email = searchParams.get('email')?.trim().toLowerCase()

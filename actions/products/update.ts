@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { updateProductSchema, type UpdateProductInput } from '@/schemas/product.schema'
 import type { ApiResponse } from '@/types/api'
 import type { Product, Json } from '@/types/database'
+import { invalidateCache, CacheKey } from '@/lib/cache/redis'
 
 export async function updateProduct(
   input: UpdateProductInput
@@ -71,6 +72,9 @@ export async function updateProduct(
         error: 'Error al actualizar el producto',
       }
     }
+
+    // Invalidar cache de productos
+    await invalidateCache(`${CacheKey.PRODUCTS}:*`)
 
     // Revalidar cache
     revalidatePath('/admin/products')

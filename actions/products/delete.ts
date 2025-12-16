@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import type { ApiResponse } from '@/types/api'
+import { invalidateCache, CacheKey } from '@/lib/cache/redis'
 
 export async function deleteProduct(id: string): Promise<ApiResponse<void>> {
   try {
@@ -42,6 +43,9 @@ export async function deleteProduct(id: string): Promise<ApiResponse<void>> {
         error: 'Error al eliminar el producto',
       }
     }
+
+    // Invalidar cache de productos
+    await invalidateCache(`${CacheKey.PRODUCTS}:*`)
 
     // Revalidar cache
     revalidatePath('/admin/products')
@@ -84,6 +88,9 @@ export async function deleteProducts(ids: string[]): Promise<ApiResponse<void>> 
         error: 'Error al eliminar los productos',
       }
     }
+
+    // Invalidar cache de productos
+    await invalidateCache(`${CacheKey.PRODUCTS}:*`)
 
     // Revalidar cache
     revalidatePath('/admin/products')

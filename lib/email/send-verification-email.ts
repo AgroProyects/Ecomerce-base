@@ -1,6 +1,4 @@
-import { render } from '@react-email/render'
-import { sendEmail } from './send-email'
-import EmailVerification from './templates/email-verification'
+import { queueVerificationEmail } from '@/lib/queue/email-queue'
 
 interface SendVerificationEmailParams {
   to: string
@@ -8,19 +6,17 @@ interface SendVerificationEmailParams {
   token: string
 }
 
+/**
+ * Envía email de verificación usando queue (asíncrono)
+ * @deprecated - Migrado a email queue para mejor manejo de errores y reintentos
+ */
 export async function sendVerificationEmail({ to, name, token }: SendVerificationEmailParams) {
   const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/confirm?token=${token}`
 
-  const html = render(
-    EmailVerification({
-      name,
-      verificationUrl,
-    })
-  )
-
-  return sendEmail({
+  // Agregar a queue en lugar de enviar directamente
+  return queueVerificationEmail({
     to,
-    subject: '✓ Confirma tu email - Bienvenido a la tienda',
-    html,
+    userName: name,
+    verificationUrl,
   })
 }

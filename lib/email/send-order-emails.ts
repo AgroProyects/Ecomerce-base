@@ -1,9 +1,6 @@
 'use server';
 
-import { render } from '@react-email/render';
-import { sendEmail } from './send-email';
-import OrderConfirmationEmail from './templates/order-confirmation';
-import OrderStatusUpdateEmail from './templates/order-status-update';
+import { queueOrderConfirmationEmail, queueOrderStatusEmail } from '@/lib/queue/email-queue';
 import type { Order, OrderItem } from '@/types/database';
 import type { OrderStatus } from '@/schemas/order.schema';
 
@@ -15,34 +12,43 @@ interface SendOrderConfirmationParams {
 }
 
 /**
- * Envía email de confirmación de orden
+ * Envía email de confirmación de orden usando queue (asíncrono)
+ * @deprecated - Migrado a email queue para mejor manejo de errores y reintentos
  */
 export async function sendOrderConfirmationEmail({
   order,
   items,
-  storeName,
-  storeUrl,
 }: SendOrderConfirmationParams) {
   try {
-    const emailHtml = await render(
-      OrderConfirmationEmail({
-        order,
-        items,
-        storeName,
-        storeUrl,
-      })
-    );
+    // Preparar tracking URL si existe
+    const trackingUrl = order.tracking_number
+      ? `${process.env.NEXT_PUBLIC_APP_URL}/orders/track?number=${order.tracking_number}`
+      : undefined;
 
-    await sendEmail({
+    // Transformar items al formato requerido por la queue
+    const queueItems = items.map((item) => ({
+      name: item.product_name || 'Producto',
+      quantity: item.quantity,
+      price: item.unit_price,
+    }));
+
+    await queueOrderConfirmationEmail({
       to: order.customer_email,
-      subject: `Confirmación de tu pedido #${order.order_number}`,
-      html: emailHtml,
+      userName: order.customer_name,
+      orderNumber: order.order_number,
+      orderDate: new Date(order.created_at).toLocaleDateString('es-AR'),
+      items: queueItems,
+      subtotal: order.subtotal,
+      shipping: order.shipping_cost,
+      discount: order.discount_amount,
+      total: order.total,
+      trackingUrl,
     });
 
-    console.log(`Order confirmation email sent to ${order.customer_email}`);
+    console.log(`Order confirmation email queued for ${order.customer_email}`);
     return { success: true };
   } catch (error) {
-    console.error('Error sending order confirmation email:', error);
+    console.error('Error queueing order confirmation email:', error);
     return { success: false, error };
   }
 }
@@ -55,45 +61,48 @@ interface SendOrderStatusUpdateParams {
 }
 
 /**
- * Envía email de actualización de estado de orden
+ * Envía email de actualización de estado de orden usando queue (asíncrono)
+ * @deprecated - Migrado a email queue para mejor manejo de errores y reintentos
  */
 export async function sendOrderStatusUpdateEmail({
   order,
   newStatus,
-  storeName,
-  storeUrl,
 }: SendOrderStatusUpdateParams) {
   try {
-    const emailHtml = await render(
-      OrderStatusUpdateEmail({
-        order,
-        newStatus,
-        storeName,
-        storeUrl,
-      })
-    );
-
-    const STATUS_SUBJECTS: Record<OrderStatus, string> = {
-      pending: `Tu pedido #${order.order_number} está siendo revisado`,
-      pending_payment: `Estamos esperando tu pago - Pedido #${order.order_number}`,
-      paid: `Tu pago fue confirmado - Pedido #${order.order_number}`,
-      processing: `Estamos preparando tu pedido #${order.order_number}`,
-      shipped: `Tu pedido #${order.order_number} está en camino`,
-      delivered: `Tu pedido #${order.order_number} fue entregado`,
-      cancelled: `Tu pedido #${order.order_number} fue cancelado`,
-      refunded: `Reembolso procesado - Pedido #${order.order_number}`,
+    const STATUS_MESSAGES: Record<OrderStatus, string> = {
+      pending: 'Tu pedido está siendo revisado',
+      pending_payment: 'Estamos esperando la confirmación de tu pago',
+      paid: 'Tu pago fue confirmado',
+      processing: 'Estamos preparando tu pedido',
+      shipped: 'Tu pedido está en camino',
+      delivered: 'Tu pedido fue entregado',
+      cancelled: 'Tu pedido fue cancelado',
+      refunded: 'Tu reembolso ha sido procesado',
     };
 
-    await sendEmail({
+    const trackingUrl = order.tracking_number
+      ? `${process.env.NEXT_PUBLIC_APP_URL}/orders/track?number=${order.tracking_number}`
+      : undefined;
+
+    // Mapear status a los valores aceptados por la queue
+    const queueStatus =
+      newStatus === 'shipped' || newStatus === 'delivered' || newStatus === 'cancelled'
+        ? newStatus
+        : 'processing';
+
+    await queueOrderStatusEmail({
       to: order.customer_email,
-      subject: STATUS_SUBJECTS[newStatus],
-      html: emailHtml,
+      userName: order.customer_name,
+      orderNumber: order.order_number,
+      status: queueStatus,
+      statusMessage: STATUS_MESSAGES[newStatus],
+      trackingUrl,
     });
 
-    console.log(`Order status update email sent to ${order.customer_email}`);
+    console.log(`Order status update email queued for ${order.customer_email}`);
     return { success: true };
   } catch (error) {
-    console.error('Error sending order status update email:', error);
+    console.error('Error queueing order status update email:', error);
     return { success: false, error };
   }
 }

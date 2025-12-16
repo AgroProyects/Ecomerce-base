@@ -1,562 +1,488 @@
 -- =====================================================
--- DATOS DE PRUEBA PARA E-COMMERCE
+-- SEED DATA - TIENDA DE ROPA URUGUAYA
 -- =====================================================
--- Ejecutar después de la migración inicial
--- =====================================================
-
--- Limpiar datos existentes (en orden correcto por FK)
-TRUNCATE order_items, orders, product_variants, products, categories, banners, store_settings, users CASCADE;
+-- Este script carga datos iniciales para una tienda de ropa con precios uruguayos
+-- Ejecutar DESPUÉS de reset_database.sql
 
 -- =====================================================
--- CONFIGURACIÓN DE LA TIENDA
+-- 1. CATEGORÍAS
 -- =====================================================
-INSERT INTO store_settings (
-  id,
-  store_name,
-  store_slug,
-  description,
-  logo_url,
-  primary_color,
-  secondary_color,
-  accent_color,
-  contact_email,
-  contact_phone,
-  social_links,
-  currency,
-  currency_symbol,
-  homepage_config,
-  seo_config
-) VALUES (
-  'a0000000-0000-0000-0000-000000000001',
-  'TechStore',
-  'techstore',
-  'Tu tienda de tecnología de confianza. Encontrá los mejores productos electrónicos, accesorios y gadgets al mejor precio.',
-  NULL,
-  '#18181b',
-  '#fafafa',
-  '#3b82f6',
-  'contacto@techstore.com',
-  '+54 11 1234-5678',
-  '{"instagram": "https://instagram.com/techstore", "facebook": "https://facebook.com/techstore", "twitter": "https://twitter.com/techstore"}',
-  'ARS',
-  '$',
-  '{"showHeroBanner": true, "showFeaturedProducts": true, "showCategories": true, "featuredProductsLimit": 8}',
-  '{"title": "TechStore - Tu tienda de tecnología", "description": "Comprá online los mejores productos de tecnología con envío a todo el país"}'
+INSERT INTO public.categories (name, slug, description, image_url) VALUES
+('Remeras', 'remeras', 'Remeras y camisetas para todos los estilos', 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800'),
+('Camisas', 'camisas', 'Camisas formales y casuales', 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=800'),
+('Pantalones', 'pantalones', 'Pantalones de vestir, jeans y joggers', 'https://images.unsplash.com/photo-1542272604-787c3835535d?w=800'),
+('Vestidos', 'vestidos', 'Vestidos para todas las ocasiones', 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800'),
+('Buzos', 'buzos', 'Buzos y sweaters para el invierno', 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=800'),
+('Camperas', 'camperas', 'Camperas y abrigos', 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800'),
+('Shorts', 'shorts', 'Shorts para el verano uruguayo', 'https://images.unsplash.com/photo-1591195853828-11db59a44f6b?w=800'),
+('Accesorios', 'accesorios', 'Gorros, bufandas y accesorios', 'https://images.unsplash.com/photo-1529958030586-3aae4ca485ff?w=800');
+
+-- =====================================================
+-- 2. PRODUCTOS - REMERAS
+-- =====================================================
+INSERT INTO public.products (name, slug, description, price, category_id, stock, is_featured, images) VALUES
+(
+  'Remera Lisa Básica',
+  'remera-lisa-basica',
+  'Remera 100% algodón, perfecta para el día a día. Corte regular y suave al tacto.',
+  890,
+  (SELECT id FROM categories WHERE slug = 'remeras'),
+  100,
+  true,
+  ARRAY['https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800', 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=800']
+),
+(
+  'Remera Oversize Urban',
+  'remera-oversize-urban',
+  'Remera estilo oversize con estampado urbano. Ideal para un look relajado.',
+  1290,
+  (SELECT id FROM categories WHERE slug = 'remeras'),
+  75,
+  true,
+  ARRAY['https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=800', 'https://images.unsplash.com/photo-1622445275463-afa2ab738c34?w=800']
+),
+(
+  'Remera Rayada Náutica',
+  'remera-rayada-nautica',
+  'Remera con rayas estilo marinero. Clásica y versátil.',
+  1150,
+  (SELECT id FROM categories WHERE slug = 'remeras'),
+  60,
+  false,
+  ARRAY['https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=800']
+),
+(
+  'Remera Estampada Floral',
+  'remera-estampada-floral',
+  'Remera con estampado floral primaveral. Perfecta para la temporada.',
+  1390,
+  (SELECT id FROM categories WHERE slug = 'remeras'),
+  45,
+  false,
+  ARRAY['https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=800', 'https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=800']
 );
 
 -- =====================================================
--- USUARIOS ADMIN
+-- 3. PRODUCTOS - CAMISAS
 -- =====================================================
-INSERT INTO users (id, email, name, role, is_active) VALUES
-  ('b0000000-0000-0000-0000-000000000001', 'admin@techstore.com', 'Administrador', 'super_admin', true),
-  ('b0000000-0000-0000-0000-000000000002', 'editor@techstore.com', 'Editor', 'editor', true);
-
--- =====================================================
--- CATEGORÍAS
--- =====================================================
-INSERT INTO categories (id, name, slug, description, image_url, parent_id, is_active, sort_order) VALUES
-  -- Categorías principales
-  ('c0000000-0000-0000-0000-000000000001', 'Computación', 'computacion', 'Notebooks, PCs y accesorios de computación', 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800', NULL, true, 1),
-  ('c0000000-0000-0000-0000-000000000002', 'Celulares', 'celulares', 'Smartphones y accesorios móviles', 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800', NULL, true, 2),
-  ('c0000000-0000-0000-0000-000000000003', 'Audio', 'audio', 'Auriculares, parlantes y equipos de sonido', 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800', NULL, true, 3),
-  ('c0000000-0000-0000-0000-000000000004', 'Gaming', 'gaming', 'Consolas, videojuegos y accesorios gamer', 'https://images.unsplash.com/photo-1612287230202-1ff1d85d1bdf?w=800', NULL, true, 4),
-  ('c0000000-0000-0000-0000-000000000005', 'Accesorios', 'accesorios', 'Cables, cargadores, fundas y más', 'https://images.unsplash.com/photo-1625772452859-1c03d5bf1137?w=800', NULL, true, 5),
-
-  -- Subcategorías de Computación
-  ('c0000000-0000-0000-0000-000000000011', 'Notebooks', 'notebooks', 'Laptops para trabajo y gaming', NULL, 'c0000000-0000-0000-0000-000000000001', true, 1),
-  ('c0000000-0000-0000-0000-000000000012', 'Monitores', 'monitores', 'Monitores LED, gaming y profesionales', NULL, 'c0000000-0000-0000-0000-000000000001', true, 2),
-  ('c0000000-0000-0000-0000-000000000013', 'Teclados y Mouse', 'teclados-mouse', 'Periféricos para tu computadora', NULL, 'c0000000-0000-0000-0000-000000000001', true, 3),
-
-  -- Subcategorías de Audio
-  ('c0000000-0000-0000-0000-000000000031', 'Auriculares', 'auriculares', 'Auriculares in-ear, over-ear y gaming', NULL, 'c0000000-0000-0000-0000-000000000003', true, 1),
-  ('c0000000-0000-0000-0000-000000000032', 'Parlantes', 'parlantes', 'Parlantes bluetooth y de escritorio', NULL, 'c0000000-0000-0000-0000-000000000003', true, 2);
-
--- =====================================================
--- PRODUCTOS
--- =====================================================
-INSERT INTO products (id, name, slug, description, price, compare_price, cost_price, images, category_id, is_active, is_featured, track_inventory, stock, low_stock_threshold, metadata, seo_title, seo_description) VALUES
-  -- Notebooks
-  (
-    'd0000000-0000-0000-0000-000000000001',
-    'MacBook Air M2',
-    'macbook-air-m2',
-    'La nueva MacBook Air con chip M2 es increíblemente delgada y cuenta con una pantalla Liquid Retina de 13.6 pulgadas. Batería de hasta 18 horas, cámara FaceTime HD de 1080p y sistema de audio de 4 altavoces.',
-    1899999.00,
-    2099999.00,
-    1500000.00,
-    ARRAY['https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800', 'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=800'],
-    'c0000000-0000-0000-0000-000000000011',
-    true,
-    true,
-    true,
-    15,
-    3,
-    '{"processor": "Apple M2", "ram": "8GB", "storage": "256GB SSD", "display": "13.6 pulgadas Liquid Retina"}',
-    'MacBook Air M2 - TechStore',
-    'Comprá la nueva MacBook Air M2 al mejor precio'
-  ),
-  (
-    'd0000000-0000-0000-0000-000000000002',
-    'Lenovo ThinkPad X1 Carbon',
-    'lenovo-thinkpad-x1-carbon',
-    'La notebook empresarial definitiva. Intel Core i7 de 12va generación, pantalla 14" 2.8K OLED, 16GB RAM y 512GB SSD. Ultraliviana con solo 1.12kg.',
-    1499999.00,
-    NULL,
-    1200000.00,
-    ARRAY['https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=800'],
-    'c0000000-0000-0000-0000-000000000011',
-    true,
-    true,
-    true,
-    8,
-    2,
-    '{"processor": "Intel Core i7-1260P", "ram": "16GB", "storage": "512GB SSD", "display": "14 pulgadas 2.8K OLED"}',
-    'Lenovo ThinkPad X1 Carbon - TechStore',
-    'Notebook empresarial Lenovo ThinkPad X1 Carbon'
-  ),
-  (
-    'd0000000-0000-0000-0000-000000000003',
-    'ASUS ROG Strix G15',
-    'asus-rog-strix-g15',
-    'Notebook gaming con AMD Ryzen 9, NVIDIA RTX 4070, pantalla 15.6" QHD 165Hz. Teclado RGB per-key y sistema de refrigeración avanzado.',
-    1799999.00,
-    1999999.00,
-    1400000.00,
-    ARRAY['https://images.unsplash.com/photo-1603302576837-37561b2e2302?w=800'],
-    'c0000000-0000-0000-0000-000000000011',
-    true,
-    true,
-    true,
-    5,
-    2,
-    '{"processor": "AMD Ryzen 9 7945HX", "ram": "32GB", "storage": "1TB SSD", "gpu": "NVIDIA RTX 4070"}',
-    'ASUS ROG Strix G15 Gaming - TechStore',
-    'Notebook gaming ASUS ROG Strix G15 con RTX 4070'
-  ),
-
-  -- Celulares
-  (
-    'd0000000-0000-0000-0000-000000000004',
-    'iPhone 15 Pro',
-    'iphone-15-pro',
-    'El iPhone más avanzado. Chip A17 Pro, cámara de 48MP con zoom óptico 5x, titanio de grado aeroespacial y USB-C. Pantalla Super Retina XDR de 6.1".',
-    1599999.00,
-    NULL,
-    1300000.00,
-    ARRAY['https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=800', 'https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?w=800'],
-    'c0000000-0000-0000-0000-000000000002',
-    true,
-    true,
-    true,
-    20,
-    5,
-    '{"storage": "256GB", "color": "Titanio Natural", "display": "6.1 pulgadas Super Retina XDR"}',
-    'iPhone 15 Pro - TechStore',
-    'Comprá el iPhone 15 Pro con titanio y chip A17 Pro'
-  ),
-  (
-    'd0000000-0000-0000-0000-000000000005',
-    'Samsung Galaxy S24 Ultra',
-    'samsung-galaxy-s24-ultra',
-    'El Galaxy más potente. Snapdragon 8 Gen 3, cámara de 200MP, S Pen integrado y pantalla Dynamic AMOLED 2X de 6.8". Inteligencia artificial Galaxy AI.',
-    1449999.00,
-    1599999.00,
-    1150000.00,
-    ARRAY['https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=800'],
-    'c0000000-0000-0000-0000-000000000002',
-    true,
-    true,
-    true,
-    12,
-    3,
-    '{"storage": "512GB", "color": "Titanium Gray", "display": "6.8 pulgadas Dynamic AMOLED 2X"}',
-    'Samsung Galaxy S24 Ultra - TechStore',
-    'Galaxy S24 Ultra con cámara 200MP y Galaxy AI'
-  ),
-
-  -- Audio
-  (
-    'd0000000-0000-0000-0000-000000000006',
-    'Sony WH-1000XM5',
-    'sony-wh-1000xm5',
-    'Los mejores auriculares con cancelación de ruido del mercado. 30 horas de batería, audio de alta resolución LDAC y diseño ultraligero de 250g.',
-    449999.00,
-    499999.00,
-    350000.00,
-    ARRAY['https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=800'],
-    'c0000000-0000-0000-0000-000000000031',
-    true,
-    true,
-    true,
-    25,
-    5,
-    '{"type": "Over-ear", "wireless": true, "anc": true, "battery": "30 horas"}',
-    'Sony WH-1000XM5 - TechStore',
-    'Auriculares Sony WH-1000XM5 con cancelación de ruido'
-  ),
-  (
-    'd0000000-0000-0000-0000-000000000007',
-    'AirPods Pro 2',
-    'airpods-pro-2',
-    'Los AirPods Pro con chip H2 ofrecen cancelación de ruido 2x más potente, audio espacial personalizado y hasta 6 horas de reproducción.',
-    349999.00,
-    NULL,
-    280000.00,
-    ARRAY['https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?w=800'],
-    'c0000000-0000-0000-0000-000000000031',
-    true,
-    true,
-    true,
-    30,
-    5,
-    '{"type": "In-ear", "wireless": true, "anc": true, "battery": "6 horas"}',
-    'AirPods Pro 2 - TechStore',
-    'Apple AirPods Pro 2da generación con USB-C'
-  ),
-  (
-    'd0000000-0000-0000-0000-000000000008',
-    'JBL Flip 6',
-    'jbl-flip-6',
-    'Parlante bluetooth portátil con sonido JBL Original Pro. IP67 resistente al agua y polvo, 12 horas de batería y PartyBoost para conectar múltiples parlantes.',
-    89999.00,
-    109999.00,
-    65000.00,
-    ARRAY['https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=800'],
-    'c0000000-0000-0000-0000-000000000032',
-    true,
-    false,
-    true,
-    40,
-    10,
-    '{"type": "Portátil", "wireless": true, "waterproof": "IP67", "battery": "12 horas"}',
-    'JBL Flip 6 - TechStore',
-    'Parlante bluetooth JBL Flip 6 resistente al agua'
-  ),
-
-  -- Gaming
-  (
-    'd0000000-0000-0000-0000-000000000009',
-    'PlayStation 5',
-    'playstation-5',
-    'Experimenta carga ultrarrápida con SSD de alta velocidad, inmersión más profunda con retroalimentación háptica, gatillos adaptables y audio 3D.',
-    799999.00,
-    NULL,
-    650000.00,
-    ARRAY['https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=800'],
-    'c0000000-0000-0000-0000-000000000004',
-    true,
-    true,
-    true,
-    10,
-    2,
-    '{"storage": "825GB SSD", "resolution": "4K 120fps", "includes": "Control DualSense"}',
-    'PlayStation 5 - TechStore',
-    'Consola PlayStation 5 con control DualSense'
-  ),
-  (
-    'd0000000-0000-0000-0000-000000000010',
-    'Nintendo Switch OLED',
-    'nintendo-switch-oled',
-    'Modelo con pantalla OLED de 7 pulgadas con colores vibrantes. Incluye base con puerto LAN, 64GB de almacenamiento interno y altavoces mejorados.',
-    499999.00,
-    549999.00,
-    400000.00,
-    ARRAY['https://images.unsplash.com/photo-1578303512597-81e6cc155b3e?w=800'],
-    'c0000000-0000-0000-0000-000000000004',
-    true,
-    false,
-    true,
-    18,
-    3,
-    '{"storage": "64GB", "display": "7 pulgadas OLED", "modes": "TV, Tabletop, Handheld"}',
-    'Nintendo Switch OLED - TechStore',
-    'Nintendo Switch modelo OLED con pantalla de 7 pulgadas'
-  ),
-
-  -- Monitores
-  (
-    'd0000000-0000-0000-0000-000000000011',
-    'LG UltraGear 27GP850-B',
-    'lg-ultragear-27gp850',
-    'Monitor gaming 27" QHD Nano IPS, 180Hz, 1ms GtG, G-Sync Compatible y FreeSync Premium. HDR400 y cobertura 98% DCI-P3.',
-    549999.00,
-    649999.00,
-    420000.00,
-    ARRAY['https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=800'],
-    'c0000000-0000-0000-0000-000000000012',
-    true,
-    false,
-    true,
-    7,
-    2,
-    '{"size": "27 pulgadas", "resolution": "2560x1440", "panel": "Nano IPS", "refresh": "180Hz"}',
-    'LG UltraGear 27GP850-B - TechStore',
-    'Monitor gaming LG UltraGear 27" QHD 180Hz'
-  ),
-  (
-    'd0000000-0000-0000-0000-000000000012',
-    'Samsung Odyssey G7',
-    'samsung-odyssey-g7',
-    'Monitor gaming curvo 32" QHD 1000R, 240Hz, 1ms, QLED con HDR600. G-Sync Compatible y FreeSync Premium Pro.',
-    699999.00,
-    799999.00,
-    550000.00,
-    ARRAY['https://images.unsplash.com/photo-1593640408182-31c70c8268f5?w=800'],
-    'c0000000-0000-0000-0000-000000000012',
-    true,
-    true,
-    true,
-    4,
-    2,
-    '{"size": "32 pulgadas", "resolution": "2560x1440", "panel": "VA QLED", "refresh": "240Hz", "curve": "1000R"}',
-    'Samsung Odyssey G7 - TechStore',
-    'Monitor gaming curvo Samsung Odyssey G7 32" 240Hz'
-  ),
-
-  -- Accesorios
-  (
-    'd0000000-0000-0000-0000-000000000013',
-    'Logitech MX Master 3S',
-    'logitech-mx-master-3s',
-    'El mouse más avanzado para productividad. Sensor 8K DPI, scroll electromagnético MagSpeed, Silent Clicks y conexión multi-dispositivo.',
-    149999.00,
-    NULL,
-    110000.00,
-    ARRAY['https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=800'],
-    'c0000000-0000-0000-0000-000000000013',
-    true,
-    false,
-    true,
-    35,
-    5,
-    '{"type": "Ergonómico", "sensor": "8000 DPI", "connection": "Bluetooth + USB", "battery": "70 días"}',
-    'Logitech MX Master 3S - TechStore',
-    'Mouse inalámbrico Logitech MX Master 3S'
-  ),
-  (
-    'd0000000-0000-0000-0000-000000000014',
-    'Keychron K2 Pro',
-    'keychron-k2-pro',
-    'Teclado mecánico inalámbrico 75%, hot-swappable, compatible con Mac/Windows. Switches Gateron Pro y retroiluminación RGB.',
-    129999.00,
-    149999.00,
-    95000.00,
-    ARRAY['https://images.unsplash.com/photo-1601445638532-3c6f6c3aa1d6?w=800'],
-    'c0000000-0000-0000-0000-000000000013',
-    true,
-    false,
-    true,
-    20,
-    5,
-    '{"layout": "75%", "switches": "Gateron Pro", "connection": "Bluetooth + USB-C", "rgb": true}',
-    'Keychron K2 Pro - TechStore',
-    'Teclado mecánico Keychron K2 Pro inalámbrico'
-  ),
-  (
-    'd0000000-0000-0000-0000-000000000015',
-    'Cargador Apple MagSafe 15W',
-    'cargador-apple-magsafe-15w',
-    'Cargador inalámbrico magnético para iPhone 12 en adelante. Alineación perfecta y carga rápida de hasta 15W.',
-    59999.00,
-    69999.00,
-    42000.00,
-    ARRAY['https://images.unsplash.com/photo-1609091839311-d5365f9ff1c5?w=800'],
-    'c0000000-0000-0000-0000-000000000005',
-    true,
-    false,
-    true,
-    50,
-    10,
-    '{"type": "Inalámbrico", "power": "15W", "compatible": "iPhone 12+, AirPods Pro"}',
-    'Cargador MagSafe 15W - TechStore',
-    'Cargador inalámbrico Apple MagSafe original'
-  ),
-  (
-    'd0000000-0000-0000-0000-000000000016',
-    'Cable USB-C Anker 100W',
-    'cable-usb-c-anker-100w',
-    'Cable USB-C a USB-C de 2 metros con carga rápida de 100W y transferencia de datos de 480Mbps. Nylon trenzado resistente.',
-    19999.00,
-    24999.00,
-    12000.00,
-    ARRAY['https://images.unsplash.com/photo-1583394838336-acd977736f90?w=800'],
-    'c0000000-0000-0000-0000-000000000005',
-    true,
-    false,
-    true,
-    100,
-    20,
-    '{"length": "2m", "power": "100W PD", "material": "Nylon trenzado"}',
-    'Cable USB-C Anker 100W - TechStore',
-    'Cable USB-C Anker 2m con carga rápida 100W'
-  );
+INSERT INTO public.products (name, slug, description, price, category_id, stock, is_featured, images) VALUES
+(
+  'Camisa Lino Blanca',
+  'camisa-lino-blanca',
+  'Camisa de lino 100% natural. Fresca y elegante para el verano uruguayo.',
+  2490,
+  (SELECT id FROM categories WHERE slug = 'camisas'),
+  40,
+  true,
+  ARRAY['https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=800', 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=800']
+),
+(
+  'Camisa Jean Clásica',
+  'camisa-jean-clasica',
+  'Camisa de jean stonewashed. Un clásico que nunca pasa de moda.',
+  2190,
+  (SELECT id FROM categories WHERE slug = 'camisas'),
+  55,
+  false,
+  ARRAY['https://images.unsplash.com/photo-1598032895397-d9c0fcae8c35?w=800']
+),
+(
+  'Camisa Cuadros Franela',
+  'camisa-cuadros-franela',
+  'Camisa de franela a cuadros. Perfecta para el otoño uruguayo.',
+  1990,
+  (SELECT id FROM categories WHERE slug = 'camisas'),
+  50,
+  false,
+  ARRAY['https://images.unsplash.com/photo-1603252109303-2751441dd157?w=800', 'https://images.unsplash.com/photo-1620012253295-c15cc3e65df4?w=800']
+);
 
 -- =====================================================
--- VARIANTES DE PRODUCTOS
+-- 4. PRODUCTOS - PANTALONES
 -- =====================================================
-INSERT INTO product_variants (id, product_id, name, sku, price_override, stock, attributes, is_active, sort_order) VALUES
-  -- Variantes MacBook Air M2
-  ('e0000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001', 'Medianoche', 'MBA-M2-256-MID', NULL, 5, '[{"name": "Color", "value": "Medianoche"}]', true, 1),
-  ('e0000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000001', 'Plata', 'MBA-M2-256-SIL', NULL, 5, '[{"name": "Color", "value": "Plata"}]', true, 2),
-  ('e0000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000001', 'Luz Estelar', 'MBA-M2-256-STA', NULL, 5, '[{"name": "Color", "value": "Luz Estelar"}]', true, 3),
-
-  -- Variantes iPhone 15 Pro
-  ('e0000000-0000-0000-0000-000000000004', 'd0000000-0000-0000-0000-000000000004', '256GB - Titanio Natural', 'IP15P-256-NAT', NULL, 8, '[{"name": "Almacenamiento", "value": "256GB"}, {"name": "Color", "value": "Titanio Natural"}]', true, 1),
-  ('e0000000-0000-0000-0000-000000000005', 'd0000000-0000-0000-0000-000000000004', '256GB - Titanio Negro', 'IP15P-256-BLK', NULL, 6, '[{"name": "Almacenamiento", "value": "256GB"}, {"name": "Color", "value": "Titanio Negro"}]', true, 2),
-  ('e0000000-0000-0000-0000-000000000006', 'd0000000-0000-0000-0000-000000000004', '512GB - Titanio Natural', 'IP15P-512-NAT', 1799999.00, 4, '[{"name": "Almacenamiento", "value": "512GB"}, {"name": "Color", "value": "Titanio Natural"}]', true, 3),
-  ('e0000000-0000-0000-0000-000000000007', 'd0000000-0000-0000-0000-000000000004', '512GB - Titanio Azul', 'IP15P-512-BLU', 1799999.00, 2, '[{"name": "Almacenamiento", "value": "512GB"}, {"name": "Color", "value": "Titanio Azul"}]', true, 4),
-
-  -- Variantes Sony WH-1000XM5
-  ('e0000000-0000-0000-0000-000000000008', 'd0000000-0000-0000-0000-000000000006', 'Negro', 'SONY-XM5-BLK', NULL, 15, '[{"name": "Color", "value": "Negro"}]', true, 1),
-  ('e0000000-0000-0000-0000-000000000009', 'd0000000-0000-0000-0000-000000000006', 'Plata', 'SONY-XM5-SIL', NULL, 10, '[{"name": "Color", "value": "Plata"}]', true, 2),
-
-  -- Variantes JBL Flip 6
-  ('e0000000-0000-0000-0000-000000000010', 'd0000000-0000-0000-0000-000000000008', 'Negro', 'JBL-FLIP6-BLK', NULL, 15, '[{"name": "Color", "value": "Negro"}]', true, 1),
-  ('e0000000-0000-0000-0000-000000000011', 'd0000000-0000-0000-0000-000000000008', 'Azul', 'JBL-FLIP6-BLU', NULL, 10, '[{"name": "Color", "value": "Azul"}]', true, 2),
-  ('e0000000-0000-0000-0000-000000000012', 'd0000000-0000-0000-0000-000000000008', 'Rojo', 'JBL-FLIP6-RED', NULL, 8, '[{"name": "Color", "value": "Rojo"}]', true, 3),
-  ('e0000000-0000-0000-0000-000000000013', 'd0000000-0000-0000-0000-000000000008', 'Verde', 'JBL-FLIP6-GRN', NULL, 7, '[{"name": "Color", "value": "Verde"}]', true, 4);
-
--- =====================================================
--- BANNERS
--- =====================================================
-INSERT INTO banners (id, title, subtitle, image_url, mobile_image_url, link_url, position, is_active, sort_order) VALUES
-  (
-    'f0000000-0000-0000-0000-000000000001',
-    'Nueva Colección Tech 2024',
-    'Descubrí las últimas novedades en tecnología',
-    'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=1920',
-    'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=800',
-    '/products',
-    'hero',
-    true,
-    1
-  ),
-  (
-    'f0000000-0000-0000-0000-000000000002',
-    'Gaming Week',
-    'Hasta 30% OFF en consolas y accesorios',
-    'https://images.unsplash.com/photo-1593305841991-05c297ba4575?w=1920',
-    'https://images.unsplash.com/photo-1593305841991-05c297ba4575?w=800',
-    '/category/gaming',
-    'hero',
-    true,
-    2
-  ),
-  (
-    'f0000000-0000-0000-0000-000000000003',
-    'Envío Gratis',
-    'En compras mayores a $50.000',
-    'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=1920',
-    NULL,
-    '/products',
-    'secondary',
-    true,
-    1
-  );
+INSERT INTO public.products (name, slug, description, price, category_id, stock, is_featured, images) VALUES
+(
+  'Jean Skinny Negro',
+  'jean-skinny-negro',
+  'Jean negro de corte skinny. Elegante y versátil para cualquier ocasión.',
+  3290,
+  (SELECT id FROM categories WHERE slug = 'pantalones'),
+  65,
+  true,
+  ARRAY['https://images.unsplash.com/photo-1542272604-787c3835535d?w=800', 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=800']
+),
+(
+  'Jean Mom Fit Celeste',
+  'jean-mom-fit-celeste',
+  'Jean mom fit de tiro alto. Cómodo y a la moda.',
+  3490,
+  (SELECT id FROM categories WHERE slug = 'pantalones'),
+  50,
+  true,
+  ARRAY['https://images.unsplash.com/photo-1582418702059-97ebafb35d09?w=800', 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=800']
+),
+(
+  'Pantalón Cargo Beige',
+  'pantalon-cargo-beige',
+  'Pantalón cargo con múltiples bolsillos. Estilo urbano y funcional.',
+  2990,
+  (SELECT id FROM categories WHERE slug = 'pantalones'),
+  45,
+  false,
+  ARRAY['https://images.unsplash.com/photo-1624378440070-7b44c01f5b44?w=800']
+),
+(
+  'Jogger Deportivo',
+  'jogger-deportivo',
+  'Jogger deportivo con cintura elástica. Comodidad máxima.',
+  2290,
+  (SELECT id FROM categories WHERE slug = 'pantalones'),
+  70,
+  false,
+  ARRAY['https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=800', 'https://images.unsplash.com/photo-1506629082955-511b1aa562c8?w=800']
+);
 
 -- =====================================================
--- ÓRDENES DE EJEMPLO
+-- 5. PRODUCTOS - VESTIDOS
 -- =====================================================
-INSERT INTO orders (id, order_number, status, customer_email, customer_name, customer_phone, shipping_address, subtotal, shipping_cost, discount_amount, total, mp_status, created_at, paid_at) VALUES
-  (
-    'aa000000-0000-0000-0000-000000000001',
-    '250001',
-    'delivered',
-    'cliente1@email.com',
-    'Juan Pérez',
-    '+54 11 5555-1234',
-    '{"street": "Av. Corrientes 1234", "city": "CABA", "state": "Buenos Aires", "zip": "C1043AAZ", "country": "Argentina"}',
-    1949998.00,
-    0.00,
-    0.00,
-    1949998.00,
-    'approved',
-    NOW() - INTERVAL '15 days',
-    NOW() - INTERVAL '15 days'
-  ),
-  (
-    'aa000000-0000-0000-0000-000000000002',
-    '250002',
-    'shipped',
-    'cliente2@email.com',
-    'María García',
-    '+54 11 5555-5678',
-    '{"street": "Calle Florida 567", "city": "CABA", "state": "Buenos Aires", "zip": "C1005AAM", "country": "Argentina"}',
-    449999.00,
-    5000.00,
-    0.00,
-    454999.00,
-    'approved',
-    NOW() - INTERVAL '3 days',
-    NOW() - INTERVAL '3 days'
-  ),
-  (
-    'aa000000-0000-0000-0000-000000000003',
-    '250003',
-    'processing',
-    'cliente3@email.com',
-    'Carlos López',
-    '+54 11 5555-9012',
-    '{"street": "Av. Santa Fe 2000", "city": "CABA", "state": "Buenos Aires", "zip": "C1123AAB", "country": "Argentina"}',
-    1599999.00,
-    0.00,
-    50000.00,
-    1549999.00,
-    'approved',
-    NOW() - INTERVAL '1 day',
-    NOW() - INTERVAL '1 day'
-  ),
-  (
-    'aa000000-0000-0000-0000-000000000004',
-    '250004',
-    'pending',
-    'cliente4@email.com',
-    'Ana Rodríguez',
-    '+54 11 5555-3456',
-    '{"street": "Av. Rivadavia 8000", "city": "CABA", "state": "Buenos Aires", "zip": "C1406GLS", "country": "Argentina"}',
-    179998.00,
-    5000.00,
-    0.00,
-    184998.00,
-    NULL,
-    NOW(),
-    NULL
-  );
-
--- Items de órdenes
-INSERT INTO order_items (id, order_id, product_id, variant_id, product_name, variant_name, quantity, unit_price, total_price) VALUES
-  -- Orden 1
-  ('bb000000-0000-0000-0000-000000000001', 'aa000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000001', 'e0000000-0000-0000-0000-000000000001', 'MacBook Air M2', 'Medianoche', 1, 1899999.00, 1899999.00),
-  ('bb000000-0000-0000-0000-000000000002', 'aa000000-0000-0000-0000-000000000001', 'd0000000-0000-0000-0000-000000000015', NULL, 'Cargador Apple MagSafe 15W', NULL, 1, 49999.00, 49999.00),
-
-  -- Orden 2
-  ('bb000000-0000-0000-0000-000000000003', 'aa000000-0000-0000-0000-000000000002', 'd0000000-0000-0000-0000-000000000006', 'e0000000-0000-0000-0000-000000000008', 'Sony WH-1000XM5', 'Negro', 1, 449999.00, 449999.00),
-
-  -- Orden 3
-  ('bb000000-0000-0000-0000-000000000004', 'aa000000-0000-0000-0000-000000000003', 'd0000000-0000-0000-0000-000000000004', 'e0000000-0000-0000-0000-000000000004', 'iPhone 15 Pro', '256GB - Titanio Natural', 1, 1599999.00, 1599999.00),
-
-  -- Orden 4
-  ('bb000000-0000-0000-0000-000000000005', 'aa000000-0000-0000-0000-000000000004', 'd0000000-0000-0000-0000-000000000008', 'e0000000-0000-0000-0000-000000000010', 'JBL Flip 6', 'Negro', 2, 89999.00, 179998.00);
+INSERT INTO public.products (name, slug, description, price, category_id, stock, is_featured, images) VALUES
+(
+  'Vestido Midi Floreado',
+  'vestido-midi-floreado',
+  'Vestido midi con estampado floral. Ideal para ocasiones especiales.',
+  3990,
+  (SELECT id FROM categories WHERE slug = 'vestidos'),
+  30,
+  true,
+  ARRAY['https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800', 'https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=800']
+),
+(
+  'Vestido Corto Negro',
+  'vestido-corto-negro',
+  'Vestido corto negro básico. Elegante y atemporal.',
+  2890,
+  (SELECT id FROM categories WHERE slug = 'vestidos'),
+  40,
+  false,
+  ARRAY['https://images.unsplash.com/photo-1539008835657-9e8e9680c956?w=800']
+),
+(
+  'Vestido Largo Bohemio',
+  'vestido-largo-bohemio',
+  'Vestido largo estilo bohemio con estampado étnico. Perfecto para el verano.',
+  4290,
+  (SELECT id FROM categories WHERE slug = 'vestidos'),
+  25,
+  true,
+  ARRAY['https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=800', 'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=800']
+);
 
 -- =====================================================
--- VERIFICACIÓN
+-- 6. PRODUCTOS - BUZOS
 -- =====================================================
--- Verificar que los datos se insertaron correctamente
-DO $$
-DECLARE
-  cat_count INTEGER;
-  prod_count INTEGER;
-  var_count INTEGER;
-  order_count INTEGER;
-BEGIN
-  SELECT COUNT(*) INTO cat_count FROM categories;
-  SELECT COUNT(*) INTO prod_count FROM products;
-  SELECT COUNT(*) INTO var_count FROM product_variants;
-  SELECT COUNT(*) INTO order_count FROM orders;
+INSERT INTO public.products (name, slug, description, price, category_id, stock, is_featured, images) VALUES
+(
+  'Buzo Canguro Gris',
+  'buzo-canguro-gris',
+  'Buzo con capucha y bolsillo canguro. Abrigado y cómodo.',
+  2790,
+  (SELECT id FROM categories WHERE slug = 'buzos'),
+  80,
+  true,
+  ARRAY['https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=800', 'https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=800']
+),
+(
+  'Sweater Cuello Alto',
+  'sweater-cuello-alto',
+  'Sweater de lana con cuello alto. Elegante y abrigado.',
+  3490,
+  (SELECT id FROM categories WHERE slug = 'buzos'),
+  45,
+  false,
+  ARRAY['https://images.unsplash.com/photo-1620799140188-3b2a02fd9a77?w=800']
+),
+(
+  'Buzo Oversize Crema',
+  'buzo-oversize-crema',
+  'Buzo oversize de algodón premium. Suave y tendencia.',
+  3190,
+  (SELECT id FROM categories WHERE slug = 'buzos'),
+  55,
+  true,
+  ARRAY['https://images.unsplash.com/photo-1578587018452-892bacefd3f2?w=800', 'https://images.unsplash.com/photo-1614676471928-2ed0ad1061a4?w=800']
+);
 
-  RAISE NOTICE '✅ Datos de prueba insertados correctamente:';
-  RAISE NOTICE '   - Categorías: %', cat_count;
-  RAISE NOTICE '   - Productos: %', prod_count;
-  RAISE NOTICE '   - Variantes: %', var_count;
-  RAISE NOTICE '   - Órdenes: %', order_count;
-END $$;
+-- =====================================================
+-- 7. PRODUCTOS - CAMPERAS
+-- =====================================================
+INSERT INTO public.products (name, slug, description, price, category_id, stock, is_featured, images) VALUES
+(
+  'Campera Puffer Negra',
+  'campera-puffer-negra',
+  'Campera acolchada tipo puffer. Máximo abrigo para el invierno uruguayo.',
+  5990,
+  (SELECT id FROM categories WHERE slug = 'camperas'),
+  35,
+  true,
+  ARRAY['https://images.unsplash.com/photo-1551028719-00167b16eac5?w=800', 'https://images.unsplash.com/photo-1544022613-e87ca75a784a?w=800']
+),
+(
+  'Campera Jean Oversize',
+  'campera-jean-oversize',
+  'Campera de jean con corte oversize. Clásica y versátil.',
+  4490,
+  (SELECT id FROM categories WHERE slug = 'camperas'),
+  40,
+  true,
+  ARRAY['https://images.unsplash.com/photo-1601333144130-8cbb312386b6?w=800']
+),
+(
+  'Campera Rompeviento',
+  'campera-rompeviento',
+  'Campera liviana rompeviento. Ideal para días ventosos.',
+  3790,
+  (SELECT id FROM categories WHERE slug = 'camperas'),
+  50,
+  false,
+  ARRAY['https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=800', 'https://images.unsplash.com/photo-1548126032-079d06f0c333?w=800']
+);
+
+-- =====================================================
+-- 8. PRODUCTOS - SHORTS
+-- =====================================================
+INSERT INTO public.products (name, slug, description, price, category_id, stock, is_featured, images) VALUES
+(
+  'Short Jean Celeste',
+  'short-jean-celeste',
+  'Short de jean con ruedo deshilachado. Fresco para el verano.',
+  1990,
+  (SELECT id FROM categories WHERE slug = 'shorts'),
+  60,
+  false,
+  ARRAY['https://images.unsplash.com/photo-1591195853828-11db59a44f6b?w=800']
+),
+(
+  'Short Deportivo',
+  'short-deportivo',
+  'Short deportivo con tecnología dry-fit. Ideal para entrenar.',
+  1590,
+  (SELECT id FROM categories WHERE slug = 'shorts'),
+  75,
+  false,
+  ARRAY['https://images.unsplash.com/photo-1519235106638-30cc49b5dbc5?w=800', 'https://images.unsplash.com/photo-1591195850636-d8f1d380c160?w=800']
+);
+
+-- =====================================================
+-- 9. PRODUCTOS - ACCESORIOS
+-- =====================================================
+INSERT INTO public.products (name, slug, description, price, category_id, stock, is_featured, images) VALUES
+(
+  'Gorro Beanie Negro',
+  'gorro-beanie-negro',
+  'Gorro de lana tipo beanie. Abrigado y con estilo.',
+  890,
+  (SELECT id FROM categories WHERE slug = 'accesorios'),
+  100,
+  false,
+  ARRAY['https://images.unsplash.com/photo-1576871337632-b9aef4c17ab9?w=800']
+),
+(
+  'Bufanda Lana Gris',
+  'bufanda-lana-gris',
+  'Bufanda tejida de lana suave. Perfecta para el invierno.',
+  1290,
+  (SELECT id FROM categories WHERE slug = 'accesorios'),
+  80,
+  false,
+  ARRAY['https://images.unsplash.com/photo-1520903920243-00d872a2d1c9?w=800']
+),
+(
+  'Gorra Trucker Negra',
+  'gorra-trucker-negra',
+  'Gorra trucker con malla trasera. Estilo urbano.',
+  790,
+  (SELECT id FROM categories WHERE slug = 'accesorios'),
+  90,
+  false,
+  ARRAY['https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=800']
+);
+
+-- =====================================================
+-- 10. VARIANTES DE PRODUCTOS (Talles y Colores)
+-- =====================================================
+
+-- Remera Lisa Básica - Variantes por Talle
+INSERT INTO public.product_variants (product_id, name, sku, stock, attributes) VALUES
+((SELECT id FROM products WHERE slug = 'remera-lisa-basica'), 'Talle S', 'REM-BAS-S', 25, '[{"name": "Talle", "value": "S"}]'::jsonb),
+((SELECT id FROM products WHERE slug = 'remera-lisa-basica'), 'Talle M', 'REM-BAS-M', 30, '[{"name": "Talle", "value": "M"}]'::jsonb),
+((SELECT id FROM products WHERE slug = 'remera-lisa-basica'), 'Talle L', 'REM-BAS-L', 25, '[{"name": "Talle", "value": "L"}]'::jsonb),
+((SELECT id FROM products WHERE slug = 'remera-lisa-basica'), 'Talle XL', 'REM-BAS-XL', 20, '[{"name": "Talle", "value": "XL"}]'::jsonb);
+
+-- Remera Lisa Básica - Variantes por Color
+INSERT INTO public.product_variants (product_id, name, sku, stock, attributes) VALUES
+((SELECT id FROM products WHERE slug = 'remera-lisa-basica'), 'Blanco', 'REM-BAS-BLA', 30, '[{"name": "Color", "value": "Blanco"}]'::jsonb),
+((SELECT id FROM products WHERE slug = 'remera-lisa-basica'), 'Negro', 'REM-BAS-NEG', 35, '[{"name": "Color", "value": "Negro"}]'::jsonb),
+((SELECT id FROM products WHERE slug = 'remera-lisa-basica'), 'Gris', 'REM-BAS-GRI', 35, '[{"name": "Color", "value": "Gris"}]'::jsonb);
+
+-- Jean Skinny Negro - Variantes por Talle
+INSERT INTO public.product_variants (product_id, name, sku, stock, attributes) VALUES
+((SELECT id FROM products WHERE slug = 'jean-skinny-negro'), 'Talle 38', 'JEAN-SKI-38', 15, '[{"name": "Talle", "value": "38"}]'::jsonb),
+((SELECT id FROM products WHERE slug = 'jean-skinny-negro'), 'Talle 40', 'JEAN-SKI-40', 20, '[{"name": "Talle", "value": "40"}]'::jsonb),
+((SELECT id FROM products WHERE slug = 'jean-skinny-negro'), 'Talle 42', 'JEAN-SKI-42', 15, '[{"name": "Talle", "value": "42"}]'::jsonb),
+((SELECT id FROM products WHERE slug = 'jean-skinny-negro'), 'Talle 44', 'JEAN-SKI-44', 10, '[{"name": "Talle", "value": "44"}]'::jsonb),
+((SELECT id FROM products WHERE slug = 'jean-skinny-negro'), 'Talle 46', 'JEAN-SKI-46', 5, '[{"name": "Talle", "value": "46"}]'::jsonb);
+
+-- Vestido Midi Floreado - Variantes por Talle
+INSERT INTO public.product_variants (product_id, name, sku, stock, attributes) VALUES
+((SELECT id FROM products WHERE slug = 'vestido-midi-floreado'), 'Talle S', 'VEST-MID-S', 10, '[{"name": "Talle", "value": "S"}]'::jsonb),
+((SELECT id FROM products WHERE slug = 'vestido-midi-floreado'), 'Talle M', 'VEST-MID-M', 12, '[{"name": "Talle", "value": "M"}]'::jsonb),
+((SELECT id FROM products WHERE slug = 'vestido-midi-floreado'), 'Talle L', 'VEST-MID-L', 8, '[{"name": "Talle", "value": "L"}]'::jsonb);
+
+-- Buzo Canguro - Variantes por Talle
+INSERT INTO public.product_variants (product_id, name, sku, stock, attributes) VALUES
+((SELECT id FROM products WHERE slug = 'buzo-canguro-gris'), 'Talle S', 'BUZO-CAN-S', 20, '[{"name": "Talle", "value": "S"}]'::jsonb),
+((SELECT id FROM products WHERE slug = 'buzo-canguro-gris'), 'Talle M', 'BUZO-CAN-M', 25, '[{"name": "Talle", "value": "M"}]'::jsonb),
+((SELECT id FROM products WHERE slug = 'buzo-canguro-gris'), 'Talle L', 'BUZO-CAN-L', 20, '[{"name": "Talle", "value": "L"}]'::jsonb),
+((SELECT id FROM products WHERE slug = 'buzo-canguro-gris'), 'Talle XL', 'BUZO-CAN-XL', 15, '[{"name": "Talle", "value": "XL"}]'::jsonb);
+
+-- Buzo Canguro - Variantes por Color
+INSERT INTO public.product_variants (product_id, name, sku, stock, attributes) VALUES
+((SELECT id FROM products WHERE slug = 'buzo-canguro-gris'), 'Gris', 'BUZO-CAN-GRI', 40, '[{"name": "Color", "value": "Gris"}]'::jsonb),
+((SELECT id FROM products WHERE slug = 'buzo-canguro-gris'), 'Negro', 'BUZO-CAN-NEG', 40, '[{"name": "Color", "value": "Negro"}]'::jsonb);
+
+-- =====================================================
+-- 11. CUPONES DE DESCUENTO
+-- =====================================================
+INSERT INTO public.coupons (code, description, discount_type, discount_value, min_purchase_amount, usage_limit, expires_at, is_active) VALUES
+('BIENVENIDA10', '10% descuento para nuevos clientes', 'percentage', 10, 0, 100, NOW() + INTERVAL '30 days', true),
+('VERANO2025', '15% descuento en compras mayores a $2000', 'percentage', 15, 2000, 50, NOW() + INTERVAL '60 days', true),
+('ENVIOGRATIS', '$200 de descuento en envío', 'fixed', 200, 3000, 200, NOW() + INTERVAL '90 days', true),
+('PRIMERACOMPRA', '20% descuento en tu primera compra', 'percentage', 20, 1500, 150, NOW() + INTERVAL '45 days', true);
+
+-- =====================================================
+-- 12. USUARIOS DE PRUEBA
+-- =====================================================
+-- IMPORTANTE: Estos usuarios deben crearse en Supabase Auth
+-- Aquí solo dejamos comentado el SQL de ejemplo
+
+/*
+-- Usuario Admin (crear en Supabase Dashboard o via auth.admin.createUser)
+-- Email: admin@tienda.com
+-- Password: Admin123!
+
+-- Usuario Cliente (crear en Supabase Dashboard o via auth.admin.createUser)
+-- Email: cliente@ejemplo.com
+-- Password: Cliente123!
+*/
+
+-- =====================================================
+-- 13. ÓRDENES DE EJEMPLO
+-- =====================================================
+-- Nota: Estas órdenes requieren que los usuarios existan primero en auth.users
+-- Descomentar después de crear los usuarios
+
+/*
+INSERT INTO public.orders (user_id, total, status, payment_method, shipping_address) VALUES
+(
+  (SELECT id FROM auth.users WHERE email = 'cliente@ejemplo.com'),
+  4180,
+  'delivered',
+  'mercadopago',
+  jsonb_build_object(
+    'name', 'Juan Pérez',
+    'street', 'Av. 18 de Julio 1234',
+    'city', 'Montevideo',
+    'state', 'Montevideo',
+    'zip', '11200',
+    'phone', '099123456'
+  )
+);
+
+-- Items de la orden
+INSERT INTO public.order_items (order_id, product_id, quantity, price) VALUES
+(
+  (SELECT id FROM orders ORDER BY created_at DESC LIMIT 1),
+  (SELECT id FROM products WHERE slug = 'remera-lisa-basica'),
+  2,
+  890
+),
+(
+  (SELECT id FROM orders ORDER BY created_at DESC LIMIT 1),
+  (SELECT id FROM products WHERE slug = 'jean-skinny-negro'),
+  1,
+  3290
+);
+*/
+
+-- =====================================================
+-- 14. RESEÑAS DE PRODUCTOS
+-- =====================================================
+-- Nota: Requieren usuarios y productos existentes
+-- Descomentar después de crear usuarios
+
+/*
+INSERT INTO public.reviews (product_id, user_id, rating, comment) VALUES
+(
+  (SELECT id FROM products WHERE slug = 'remera-lisa-basica'),
+  (SELECT id FROM auth.users WHERE email = 'cliente@ejemplo.com'),
+  5,
+  'Excelente calidad, muy cómoda y el talle es perfecto. La recomiendo!'
+),
+(
+  (SELECT id FROM products WHERE slug = 'jean-skinny-negro'),
+  (SELECT id FROM auth.users WHERE email = 'cliente@ejemplo.com'),
+  4,
+  'Buen jean, queda bien pero el negro se desteñe un poco con los lavados.'
+);
+*/
+
+-- =====================================================
+-- 15. CONFIGURACIÓN DE ENVÍOS (Departamentos de Uruguay)
+-- =====================================================
+INSERT INTO public.shipping_costs (department, cost, free_shipping_threshold, estimated_days_min, estimated_days_max, is_active) VALUES
+('Montevideo', 200, 3000, 1, 2, true),
+('Canelones', 250, 3500, 1, 3, true),
+('Maldonado', 300, 4000, 2, 4, true),
+('Colonia', 350, 4000, 2, 4, true),
+('San José', 280, 3500, 2, 3, true),
+('Florida', 320, 3800, 2, 4, true),
+('Lavalleja', 350, 4000, 2, 4, true),
+('Rocha', 380, 4200, 3, 5, true),
+('Treinta y Tres', 400, 4500, 3, 5, true),
+('Cerro Largo', 420, 4500, 3, 5, true),
+('Rivera', 450, 5000, 3, 6, true),
+('Tacuarembó', 430, 4800, 3, 5, true),
+('Salto', 460, 5000, 3, 6, true),
+('Artigas', 480, 5200, 4, 6, true),
+('Paysandú', 400, 4500, 3, 5, true),
+('Río Negro', 380, 4300, 2, 4, true),
+('Soriano', 360, 4200, 2, 4, true),
+('Durazno', 350, 4000, 2, 4, true),
+('Flores', 340, 3900, 2, 4, true);
+
+-- =====================================================
+-- VERIFICACIÓN FINAL
+-- =====================================================
+-- Mostrar resumen de datos cargados
+
+SELECT
+  'RESUMEN DE SEED' as info,
+  (SELECT COUNT(*) FROM categories) as categorias,
+  (SELECT COUNT(*) FROM products) as productos,
+  (SELECT COUNT(*) FROM product_variants) as variantes,
+  (SELECT COUNT(*) FROM coupons) as cupones,
+  (SELECT COUNT(*) FROM shipping_costs) as costos_envio;
+
+-- Mostrar productos por categoría
+SELECT
+  c.name as categoria,
+  COUNT(p.id) as cantidad_productos,
+  MIN(p.price) as precio_minimo,
+  MAX(p.price) as precio_maximo,
+  AVG(p.price)::integer as precio_promedio
+FROM categories c
+LEFT JOIN products p ON p.category_id = c.id
+GROUP BY c.name
+ORDER BY c.name;
+
+SELECT '✓ Seed completado exitosamente!' as resultado;

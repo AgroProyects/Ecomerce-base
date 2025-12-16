@@ -2,51 +2,68 @@
 
 import { createClient } from '@/lib/supabase/server'
 import type { Category } from '@/types/database'
+import { getCachedData, CacheTTL, CacheKey } from '@/lib/cache/redis'
 
 export async function getCategories(onlyActive: boolean = true): Promise<Category[]> {
-  const supabase = await createClient()
+  const cacheKey = `${CacheKey.CATEGORIES}:all:${onlyActive ? 'active' : 'all'}`
 
-  let query = supabase
-    .from('categories')
-    .select('*')
-    .order('sort_order', { ascending: true })
-    .order('name', { ascending: true })
+  return getCachedData(
+    cacheKey,
+    async () => {
+      const supabase = await createClient()
 
-  if (onlyActive) {
-    query = query.eq('is_active', true)
-  }
+      let query = supabase
+        .from('categories')
+        .select('*')
+        .order('sort_order', { ascending: true })
+        .order('name', { ascending: true })
 
-  const { data, error } = await query
+      if (onlyActive) {
+        query = query.eq('is_active', true)
+      }
 
-  if (error) {
-    console.error('Error fetching categories:', error)
-    // Retornar array vacío si la tabla no existe
-    if (error.code === 'PGRST205') return []
-    throw new Error('Error al obtener categorías')
-  }
+      const { data, error } = await query
 
-  return data as Category[]
+      if (error) {
+        console.error('Error fetching categories:', error)
+        // Retornar array vacío si la tabla no existe
+        if (error.code === 'PGRST205') return []
+        throw new Error('Error al obtener categorías')
+      }
+
+      return data as Category[]
+    },
+    CacheTTL.CATEGORIES // 10 minutos
+  )
 }
 
 export async function getCategoryBySlug(slug: string): Promise<Category | null> {
-  const supabase = await createClient()
+  const cacheKey = `${CacheKey.CATEGORIES}:slug:${slug}`
 
-  const { data, error } = await supabase
-    .from('categories')
-    .select('*')
-    .eq('slug', slug)
-    .eq('is_active', true)
-    .single()
+  return getCachedData(
+    cacheKey,
+    async () => {
+      const supabase = await createClient()
 
-  if (error) {
-    if (error.code === 'PGRST116') {
-      return null
-    }
-    console.error('Error fetching category:', error)
-    throw new Error('Error al obtener la categoría')
-  }
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('slug', slug)
+        .eq('is_active', true)
+        .single()
 
-  return data as Category
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return null
+        }
+        console.error('Error fetching category:', error)
+        throw new Error('Error al obtener la categoría')
+      }
+
+      return data as Category
+    },
+    CacheTTL.CATEGORIES // 10 minutos
+  )
 }
 
 export async function getCategoryById(id: string): Promise<Category | null> {

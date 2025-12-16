@@ -15,7 +15,13 @@
       "Bash(npm audit:*)",
       "Bash(find:*)",
       "Bash(node:*)",
-      "Bash(wc -l:*)"
+      "Bash(wc -l:*)",
+      "Bash(tree:*)",
+      "Bash(powershell:*)",
+      "Bash(for i in {1..6})",
+      "Bash(do echo \"Request $i:\")",
+      "Bash(curl:*)",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []

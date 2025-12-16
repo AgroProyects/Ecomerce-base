@@ -8,6 +8,13 @@ import { calculateShippingServer } from '@/actions/shipping'
 import { auth } from '@/lib/auth/config'
 import type { ApiResponse } from '@/types/api'
 import type { CheckoutResult } from '@/types/cart'
+import * as Sentry from '@sentry/nextjs'
+import {
+  reserveCartStock,
+  completeCartReservations,
+  checkStockAvailability,
+} from '@/lib/stock/reservations'
+import { randomUUID } from 'crypto'
 
 export async function processCheckout(
   input: ProcessCheckoutInput
@@ -82,7 +89,61 @@ export async function processCheckout(
       variants = variantsData || []
     }
 
-    // Construir items de la orden y validar stock
+    // =========================================
+    // PASO 1: Verificar disponibilidad de stock
+    // =========================================
+    const stockCheck = await checkStockAvailability(
+      items.map((item) => ({
+        productId: item.variantId ? undefined : item.productId,
+        variantId: item.variantId,
+        quantity: item.quantity,
+      }))
+    )
+
+    if (!stockCheck.available) {
+      const unavailable = stockCheck.unavailableItems[0]
+      const product = products.find(
+        (p) => p.id === (unavailable.productId || unavailable.variantId)
+      )
+      return {
+        success: false,
+        error: `Stock insuficiente para ${product?.name || 'producto'}. Disponible: ${unavailable.available}, Solicitado: ${unavailable.requested}`,
+      }
+    }
+
+    // =========================================
+    // PASO 2: Reservar stock (15 minutos)
+    // =========================================
+    const sessionId = randomUUID() // Para usuarios no autenticados
+    let reservationIds: string[] = []
+
+    try {
+      reservationIds = await reserveCartStock({
+        items: items.map((item) => ({
+          productId: item.variantId ? undefined : item.productId,
+          variantId: item.variantId,
+          quantity: item.quantity,
+        })),
+        userId: session?.user?.id,
+        sessionId: session?.user?.id ? undefined : sessionId,
+        expiresInMinutes: 15,
+      })
+
+      console.log(`✓ Reserved stock for ${reservationIds.length} items`)
+    } catch (error) {
+      console.error('Error reserving stock:', error)
+      return {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Error al reservar stock. Por favor intenta nuevamente.',
+      }
+    }
+
+    // =========================================
+    // PASO 3: Construir items de la orden
+    // =========================================
     const orderItems = []
     const cartItemsForMP = []
 
@@ -110,25 +171,9 @@ export async function processCheckout(
           }
         }
 
-        // Validar stock de variante
-        if (variant.stock < item.quantity) {
-          return {
-            success: false,
-            error: `Stock insuficiente para ${product.name} - ${variant.name}`,
-          }
-        }
-
         unitPrice = variant.price_override ?? product.price
         variantName = variant.name
         variantId = variant.id
-      } else {
-        // Validar stock de producto
-        if (product.track_inventory && product.stock < item.quantity) {
-          return {
-            success: false,
-            error: `Stock insuficiente para ${product.name}`,
-          }
-        }
       }
 
       const totalPrice = unitPrice * item.quantity
@@ -244,6 +289,28 @@ export async function processCheckout(
       }
     }
 
+    // =========================================
+    // PASO 4: Completar reservas de stock
+    // =========================================
+    try {
+      await completeCartReservations(reservationIds, order.id)
+      console.log(`✓ Completed ${reservationIds.length} stock reservations`)
+    } catch (error) {
+      console.error('Error completing reservations:', error)
+      // Log error but don't fail the checkout
+      // Stock ya está reservado y se liberará automáticamente si no se completa
+      Sentry.captureException(error, {
+        tags: {
+          module: 'checkout',
+          action: 'complete_reservations',
+        },
+        extra: {
+          orderId: order.id,
+          reservationIds,
+        },
+      })
+    }
+
     // Registrar uso del cupón si aplica
     if (coupon) {
       // Registrar uso
@@ -322,6 +389,23 @@ export async function processCheckout(
           console.error('Error cause:', error.cause)
         }
 
+        // Capturar error en Sentry
+        Sentry.captureException(error, {
+          tags: {
+            module: 'checkout',
+            action: 'processCheckout',
+            payment_method: 'mercadopago',
+            error_type: 'preference_creation',
+          },
+          extra: {
+            orderId: order.id,
+            orderNumber: order.order_number,
+            itemsCount: items.length,
+            totalAmount: total,
+          },
+          level: 'error',
+        })
+
         // Marcar la orden como fallida pero no eliminarla
         await supabase
           .from('orders')
@@ -366,7 +450,18 @@ export async function processCheckout(
         error: 'Método de pago no válido',
       }
     }
-  } catch {
+  } catch (error) {
+    console.error('Error crítico en processCheckout:', error)
+
+    // Capturar error crítico en Sentry
+    Sentry.captureException(error, {
+      tags: {
+        module: 'checkout',
+        action: 'processCheckout',
+      },
+      level: 'error',
+    })
+
     return {
       success: false,
       error: 'Error interno del servidor',
