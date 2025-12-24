@@ -15,15 +15,29 @@ import {
   checkStockAvailability,
 } from '@/lib/stock/reservations'
 import { randomUUID } from 'crypto'
+import { actionLogger } from '@/lib/logger/config'
+import { logTiming, logError } from '@/lib/logger/utils'
 
 export async function processCheckout(
   input: ProcessCheckoutInput
 ): Promise<ApiResponse<CheckoutResult>> {
+  const startTime = Date.now()
+  const operation = 'checkout:process'
+
+  actionLogger.info({ operation, email: input.customer.email }, 'Processing checkout')
+
   try {
     // Check if user is authenticated and email is verified
     const session = await auth()
     const userRole = session?.user?.role || 'customer'
     const isAdmin = userRole === 'admin' || userRole === 'super_admin'
+
+    actionLogger.debug({
+      operation,
+      userId: session?.user?.id,
+      userRole,
+      itemsCount: input.items.length,
+    }, 'Checkout session verified')
 
     // TODO: Habilitar verificación de email más tarde
     // Skip email verification for admins
@@ -129,9 +143,12 @@ export async function processCheckout(
         expiresInMinutes: 15,
       })
 
-      console.log(`✓ Reserved stock for ${reservationIds.length} items`)
+      actionLogger.info(
+        { operation, reservationCount: reservationIds.length, reservationIds },
+        'Stock reserved successfully'
+      )
     } catch (error) {
-      console.error('Error reserving stock:', error)
+      logError(actionLogger, error, { operation, step: 'reserve_stock' })
       return {
         success: false,
         error:
@@ -294,9 +311,12 @@ export async function processCheckout(
     // =========================================
     try {
       await completeCartReservations(reservationIds, order.id)
-      console.log(`✓ Completed ${reservationIds.length} stock reservations`)
+      actionLogger.info(
+        { operation, orderId: order.id, reservationCount: reservationIds.length },
+        'Stock reservations completed'
+      )
     } catch (error) {
-      console.error('Error completing reservations:', error)
+      logError(actionLogger, error, { operation, step: 'complete_reservations', orderId: order.id })
       // Log error but don't fail the checkout
       // Stock ya está reservado y se liberará automáticamente si no se completa
       Sentry.captureException(error, {
@@ -340,12 +360,14 @@ export async function processCheckout(
     if (customer.paymentMethod === 'mercadopago') {
       // Crear preferencia de Mercado Pago
       try {
-        console.log('=== INICIANDO CREACIÓN DE PREFERENCIA DE MERCADO PAGO ===')
-        console.log('Order ID:', order.id)
-        console.log('Order Number:', order.order_number)
-        console.log('Items count:', cartItemsForMP.length)
-        console.log('Shipping cost:', shippingCost)
-        console.log('Total:', total)
+        actionLogger.info({
+          operation,
+          orderId: order.id,
+          orderNumber: order.order_number,
+          itemsCount: cartItemsForMP.length,
+          shippingCost,
+          total,
+        }, 'Creating Mercado Pago preference')
 
         const preference = await createPreference({
           orderId: order.id,
@@ -355,9 +377,11 @@ export async function processCheckout(
           shippingCost,
         })
 
-        console.log('✓ Preferencia creada exitosamente')
-        console.log('Preference ID:', preference.id)
-        console.log('Init Point:', preference.initPoint)
+        actionLogger.info({
+          operation,
+          orderId: order.id,
+          preferenceId: preference.id,
+        }, 'Mercado Pago preference created successfully')
 
         // Actualizar orden con ID de preferencia
         await supabase
@@ -365,7 +389,11 @@ export async function processCheckout(
           .update({ mp_preference_id: preference.id })
           .eq('id', order.id)
 
-        console.log('✓ Orden actualizada con preference_id')
+        logTiming(actionLogger, operation, startTime, {
+          orderId: order.id,
+          orderNumber: order.order_number,
+          paymentMethod: 'mercadopago',
+        })
 
         return {
           success: true,
@@ -379,15 +407,12 @@ export async function processCheckout(
           },
         }
       } catch (error) {
-        console.error('=== ERROR AL CREAR PREFERENCIA DE MERCADO PAGO ===')
-        console.error('Error completo:', error)
-        console.error('Error message:', error instanceof Error ? error.message : 'Unknown error')
-        console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
-
-        // Si el error tiene información adicional de Mercado Pago
-        if (error && typeof error === 'object' && 'cause' in error) {
-          console.error('Error cause:', error.cause)
-        }
+        logError(actionLogger, error, {
+          operation,
+          step: 'create_mp_preference',
+          orderId: order.id,
+          orderNumber: order.order_number,
+        })
 
         // Capturar error en Sentry
         Sentry.captureException(error, {
@@ -422,6 +447,12 @@ export async function processCheckout(
       }
     } else if (customer.paymentMethod === 'bank_transfer') {
       // Transferencia bancaria - orden creada en estado pending_payment
+      logTiming(actionLogger, operation, startTime, {
+        orderId: order.id,
+        orderNumber: order.order_number,
+        paymentMethod: 'bank_transfer',
+      })
+
       return {
         success: true,
         data: {
@@ -434,6 +465,12 @@ export async function processCheckout(
       }
     } else if (customer.paymentMethod === 'cash_on_delivery') {
       // Efectivo contra entrega - orden creada en estado pending
+      logTiming(actionLogger, operation, startTime, {
+        orderId: order.id,
+        orderNumber: order.order_number,
+        paymentMethod: 'cash_on_delivery',
+      })
+
       return {
         success: true,
         data: {
@@ -451,7 +488,7 @@ export async function processCheckout(
       }
     }
   } catch (error) {
-    console.error('Error crítico en processCheckout:', error)
+    logError(actionLogger, error, { operation })
 
     // Capturar error crítico en Sentry
     Sentry.captureException(error, {

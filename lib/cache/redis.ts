@@ -4,6 +4,8 @@
  */
 
 import { Redis } from '@upstash/redis'
+import { cacheLogger } from '@/lib/logger/config'
+import { logCacheOperation } from '@/lib/logger/utils'
 
 // Reutilizar la misma conexión de Redis
 const redis = new Redis({
@@ -41,22 +43,22 @@ export async function getCachedData<T>(
     const cached = await redis.get<T>(key)
 
     if (cached !== null) {
-      console.log(`✓ Cache HIT: ${key}`)
+      logCacheOperation(cacheLogger, 'HIT', key)
       return cached
     }
 
-    console.log(`✗ Cache MISS: ${key}`)
+    logCacheOperation(cacheLogger, 'MISS', key)
 
     // Si no existe en cache, ejecutar fetcher
     const fresh = await fetcher()
 
     // Guardar en cache con TTL
     await redis.setex(key, ttl, JSON.stringify(fresh))
-    console.log(`✓ Cached: ${key} (TTL: ${ttl}s)`)
+    logCacheOperation(cacheLogger, 'SET', key, { ttl })
 
     return fresh
   } catch (error) {
-    console.error('Cache error:', error)
+    cacheLogger.error({ error, key }, 'Cache error - falling back to direct fetch')
     // Si falla el cache, ejecutar fetcher directamente (fail-safe)
     return fetcher()
   }
@@ -84,12 +86,12 @@ export async function invalidateCache(pattern: string): Promise<void> {
     if (keys.length > 0) {
       // Eliminar todas las keys
       await redis.del(...keys)
-      console.log(`✓ Invalidated ${keys.length} cache keys matching: ${pattern}`)
+      logCacheOperation(cacheLogger, 'DELETE', pattern, { count: keys.length })
     } else {
-      console.log(`ℹ No cache keys found matching: ${pattern}`)
+      cacheLogger.debug({ pattern }, 'No cache keys found matching pattern')
     }
   } catch (error) {
-    console.error('Error invalidating cache:', error)
+    cacheLogger.error({ error, pattern }, 'Error invalidating cache pattern')
   }
 }
 
@@ -107,12 +109,12 @@ export async function invalidateCacheKey(key: string): Promise<void> {
   try {
     const result = await redis.del(key)
     if (result > 0) {
-      console.log(`✓ Invalidated cache key: ${key}`)
+      logCacheOperation(cacheLogger, 'DELETE', key)
     } else {
-      console.log(`ℹ Cache key not found: ${key}`)
+      cacheLogger.debug({ key }, 'Cache key not found')
     }
   } catch (error) {
-    console.error('Error invalidating cache key:', error)
+    cacheLogger.error({ error, key }, 'Error invalidating cache key')
   }
 }
 
@@ -134,10 +136,10 @@ export async function invalidateCacheKeys(keys: string[]): Promise<void> {
   try {
     if (keys.length > 0) {
       const result = await redis.del(...keys)
-      console.log(`✓ Invalidated ${result} cache keys`)
+      cacheLogger.info({ count: result, keys }, `Invalidated ${result} cache keys`)
     }
   } catch (error) {
-    console.error('Error invalidating cache keys:', error)
+    cacheLogger.error({ error, keys }, 'Error invalidating cache keys')
   }
 }
 
@@ -151,7 +153,7 @@ export async function getCacheTTL(key: string): Promise<number> {
   try {
     return await redis.ttl(key)
   } catch (error) {
-    console.error('Error getting cache TTL:', error)
+    cacheLogger.error({ error, key }, 'Error getting cache TTL')
     return -1
   }
 }
@@ -167,7 +169,7 @@ export async function cacheExists(key: string): Promise<boolean> {
     const exists = await redis.exists(key)
     return exists === 1
   } catch (error) {
-    console.error('Error checking cache existence:', error)
+    cacheLogger.error({ error, key }, 'Error checking cache existence')
     return false
   }
 }

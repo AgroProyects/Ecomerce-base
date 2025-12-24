@@ -8,6 +8,8 @@ import { redisOptions } from './redis-connection'
 import { EmailData, EmailType } from './types'
 import { transporter } from '@/lib/email/client'
 import * as Sentry from '@sentry/nextjs'
+import { emailLogger } from '@/lib/logger/config'
+import { logQueueJob } from '@/lib/logger/utils'
 
 /**
  * Templates HTML para cada tipo de email
@@ -377,8 +379,15 @@ const emailTemplates = {
  */
 async function processEmailJob(job: Job<EmailData>) {
   const emailData = job.data
+  const startTime = Date.now()
 
-  console.log(`📧 Processing email: ${emailData.type} to ${emailData.to}`)
+  logQueueJob(emailLogger, {
+    jobId: job.id!,
+    jobName: emailData.type,
+    queueName: 'emails',
+    status: 'started',
+    data: { to: emailData.to, subject: emailData.subject },
+  })
 
   try {
     // Generar HTML del template
@@ -396,7 +405,16 @@ async function processEmailJob(job: Job<EmailData>) {
       html,
     })
 
-    console.log(`✅ Email sent: ${emailData.type} to ${emailData.to} (Message ID: ${info.messageId})`)
+    const duration = Date.now() - startTime
+
+    logQueueJob(emailLogger, {
+      jobId: job.id!,
+      jobName: emailData.type,
+      queueName: 'emails',
+      status: 'completed',
+      duration,
+      data: { to: emailData.to, messageId: info.messageId },
+    })
 
     return {
       success: true,
@@ -405,7 +423,19 @@ async function processEmailJob(job: Job<EmailData>) {
       to: emailData.to,
     }
   } catch (error) {
-    console.error(`❌ Failed to send email: ${emailData.type} to ${emailData.to}`, error)
+    const duration = Date.now() - startTime
+    const errorObj = error instanceof Error ? error : new Error(String(error))
+
+    logQueueJob(emailLogger, {
+      jobId: job.id!,
+      jobName: emailData.type,
+      queueName: 'emails',
+      status: 'failed',
+      duration,
+      attempt: job.attemptsMade,
+      error: errorObj,
+      data: { to: emailData.to },
+    })
 
     // Capturar error en Sentry
     Sentry.captureException(error, {
@@ -441,15 +471,31 @@ export const emailWorker = new Worker('emails', processEmailJob, {
 
 // Event listeners
 emailWorker.on('completed', (job) => {
-  console.log(`✅ Job ${job.id} completed`)
+  emailLogger.debug({ jobId: job.id }, 'Job completed')
 })
 
 emailWorker.on('failed', (job, err) => {
-  console.error(`❌ Job ${job?.id} failed after ${job?.attemptsMade} attempts:`, err.message)
+  if (!job) return
+
+  emailLogger.error(
+    {
+      jobId: job.id,
+      attemptsMade: job.attemptsMade,
+      error: { message: err.message, name: err.name },
+    },
+    `Job ${job.id} failed after ${job.attemptsMade} attempts`
+  )
 
   // Si ya se agotaron los intentos, loguear para revisión manual
-  if (job && job.attemptsMade >= (job.opts.attempts || 1)) {
-    console.error(`🚨 Job ${job.id} exhausted all retry attempts. Manual review needed.`)
+  if (job.attemptsMade >= (job.opts.attempts || 1)) {
+    emailLogger.error(
+      {
+        jobId: job.id,
+        data: job.data,
+        error: err.message,
+      },
+      'Job exhausted all retry attempts - manual review needed'
+    )
 
     Sentry.captureMessage(`Email job ${job.id} failed permanently`, {
       level: 'error',
@@ -467,7 +513,7 @@ emailWorker.on('failed', (job, err) => {
 })
 
 emailWorker.on('error', (err) => {
-  console.error('❌ Worker error:', err)
+  emailLogger.error({ error: err }, 'Worker error')
   Sentry.captureException(err, {
     tags: { module: 'email-queue', type: 'worker_error' },
   })
@@ -475,15 +521,15 @@ emailWorker.on('error', (err) => {
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
-  console.log('⏸ SIGTERM received, closing email worker...')
+  emailLogger.info('SIGTERM received, closing email worker...')
   await emailWorker.close()
   process.exit(0)
 })
 
 process.on('SIGINT', async () => {
-  console.log('⏸ SIGINT received, closing email worker...')
+  emailLogger.info('SIGINT received, closing email worker...')
   await emailWorker.close()
   process.exit(0)
 })
 
-console.log('✓ Email worker started')
+emailLogger.info('Email worker started')

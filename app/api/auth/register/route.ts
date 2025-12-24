@@ -1,18 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { z } from 'zod'
 import crypto from 'crypto'
 import { render } from '@react-email/render'
 import { sendEmail } from '@/lib/email/send-email'
 import EmailVerification from '@/lib/email/templates/email-verification'
 import { ratelimit, getIdentifier } from '@/lib/middleware/rate-limit'
 import * as Sentry from '@sentry/nextjs'
-
-const registerSchema = z.object({
-  name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
-  email: z.string().email('Email inválido'),
-  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
-})
+import { registerSchema } from '@/schemas/auth.schema'
 
 export async function POST(request: NextRequest) {
   try {

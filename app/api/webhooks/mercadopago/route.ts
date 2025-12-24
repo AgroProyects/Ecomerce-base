@@ -3,15 +3,23 @@ import { processPaymentWebhook, type WebhookNotification } from '@/lib/mercadopa
 import { ratelimit, getIdentifierSync } from '@/lib/middleware/rate-limit'
 import { verifyMercadoPagoWebhook } from '@/lib/mercadopago/verify-webhook'
 import * as Sentry from '@sentry/nextjs'
+import { httpLogger, paymentLogger } from '@/lib/logger/config'
+import { logHttpRequest } from '@/lib/logger/utils'
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now()
+  const url = request.url
+  const method = request.method
+
+  httpLogger.info({ method, url }, 'Mercado Pago webhook received')
+
   try {
     // 1. Aplicar rate limiting (síncrono para webhooks)
     const identifier = getIdentifierSync(request)
     const { success, limit, reset, remaining } = await ratelimit.webhook.limit(identifier)
 
     if (!success) {
-      console.warn('Webhook rate limited', { identifier, remaining })
+      httpLogger.warn({ identifier, remaining }, 'Webhook rate limited')
       return NextResponse.json(
         { error: 'Too many requests' },
         {
@@ -28,13 +36,13 @@ export async function POST(request: NextRequest) {
     // 2. Parsear el body
     const body = await request.json() as WebhookNotification
 
-    console.log('Webhook received:', JSON.stringify(body, null, 2))
+    paymentLogger.debug({ webhookType: body.type, dataId: body.data?.id }, 'Webhook payload received')
 
     // 3. VERIFICAR FIRMA DEL WEBHOOK (CRÍTICO PARA SEGURIDAD)
     const dataId = body.data?.id
 
     if (!dataId) {
-      console.error('Missing data.id in webhook payload')
+      paymentLogger.error('Missing data.id in webhook payload')
       return NextResponse.json(
         { error: 'Invalid webhook payload' },
         { status: 400 }
@@ -45,12 +53,12 @@ export async function POST(request: NextRequest) {
     const isValidSignature = verifyMercadoPagoWebhook(request, dataId)
 
     if (!isValidSignature) {
-      console.error('⚠️ WEBHOOK SIGNATURE VERIFICATION FAILED ⚠️', {
+      paymentLogger.error({
         dataId,
         type: body.type,
         xSignature: request.headers.get('x-signature'),
         xRequestId: request.headers.get('x-request-id')
-      })
+      }, 'WEBHOOK SIGNATURE VERIFICATION FAILED')
 
       // IMPORTANTE: Retornar 401 pero no revelar detalles del error
       return NextResponse.json(
@@ -59,18 +67,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('✅ Webhook signature verified successfully')
+    paymentLogger.info({ dataId }, 'Webhook signature verified successfully')
 
     // 4. Validar tipo de notificación
     if (body.type !== 'payment') {
-      console.log('Received non-payment webhook', { type: body.type })
+      paymentLogger.debug({ type: body.type }, 'Received non-payment webhook - ignoring')
       return NextResponse.json({ received: true })
     }
 
     const paymentId = body.data.id
 
     if (!paymentId) {
-      console.error('No payment ID in webhook')
+      paymentLogger.error('No payment ID in webhook')
       return NextResponse.json(
         { error: 'No payment ID' },
         { status: 400 }
@@ -78,11 +86,11 @@ export async function POST(request: NextRequest) {
     }
 
     // 5. Procesar el pago
-    console.log(`Processing payment webhook: ${paymentId}`)
+    paymentLogger.info({ paymentId }, 'Processing payment webhook')
     const result = await processPaymentWebhook(paymentId)
 
     if (!result.success) {
-      console.error('Error processing webhook:', result.error)
+      paymentLogger.error({ paymentId, error: result.error }, 'Error processing webhook')
 
       // Capturar error en Sentry
       Sentry.captureMessage(`Webhook processing failed: ${result.error}`, {
@@ -105,7 +113,18 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    console.log(`✅ Payment ${paymentId} processed for order ${result.orderId}, status: ${result.status}`)
+    const duration = Date.now() - startTime
+    paymentLogger.info(
+      { paymentId, orderId: result.orderId, status: result.status, duration },
+      'Payment webhook processed successfully'
+    )
+
+    logHttpRequest(httpLogger, {
+      method,
+      url,
+      statusCode: 200,
+      duration,
+    })
 
     // 6. Siempre retornar 200 (MP reintenta si no es 200)
     return NextResponse.json({
@@ -115,7 +134,18 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('⚠️ Webhook processing error:', error)
+    const duration = Date.now() - startTime
+    const errorObj = error instanceof Error ? error : new Error(String(error))
+
+    paymentLogger.error({ error: errorObj, duration }, 'Webhook processing error')
+
+    logHttpRequest(httpLogger, {
+      method,
+      url,
+      statusCode: 500,
+      duration,
+      error: errorObj,
+    })
 
     // Capturar error crítico en Sentry
     Sentry.captureException(error, {
@@ -124,9 +154,6 @@ export async function POST(request: NextRequest) {
         endpoint: '/api/webhooks/mercadopago',
       },
       level: 'error',
-      extra: {
-        webhookBody: body,
-      },
     })
 
     // Retornar 200 para evitar reintentos infinitos de MP
