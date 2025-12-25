@@ -50,7 +50,7 @@ export async function getAvailableStock(params: {
 
   const supabase = createAdminClient()
 
-  const { data, error } = await supabase.rpc('get_available_stock', {
+  const { data, error } = await (supabase as any).rpc('get_available_stock', {
     p_product_id: productId || null,
     p_variant_id: variantId || null,
   })
@@ -91,7 +91,7 @@ export async function reserveStock(params: ReservationParams): Promise<string> {
 
   const supabase = createAdminClient()
 
-  const { data, error } = await supabase.rpc('reserve_stock', {
+  const { data, error } = await (supabase as any).rpc('reserve_stock', {
     p_product_id: productId || null,
     p_variant_id: variantId || null,
     p_quantity: quantity,
@@ -125,7 +125,7 @@ export async function releaseReservation(
 ): Promise<boolean> {
   const supabase = createAdminClient()
 
-  const { data, error } = await supabase.rpc('release_reservation', {
+  const { data, error } = await (supabase as any).rpc('release_reservation', {
     p_reservation_id: reservationId,
     p_reason: reason,
   })
@@ -150,7 +150,7 @@ export async function completeReservation(
 ): Promise<boolean> {
   const supabase = createAdminClient()
 
-  const { data, error } = await supabase.rpc('complete_reservation', {
+  const { data, error } = await (supabase as any).rpc('complete_reservation', {
     p_reservation_id: reservationId,
     p_order_id: orderId,
   })
@@ -172,7 +172,7 @@ export async function completeReservation(
 export async function cleanupExpiredReservations(): Promise<number> {
   const supabase = createAdminClient()
 
-  const { data, error } = await supabase.rpc('cleanup_expired_reservations')
+  const { data, error } = await (supabase as any).rpc('cleanup_expired_reservations')
 
   if (error) {
     console.error('Error cleaning up expired reservations:', error)
@@ -203,7 +203,7 @@ export async function getUserReservations(params: {
 
   const supabase = createAdminClient()
 
-  let query = supabase
+  let query = (supabase as any)
     .from('stock_reservations')
     .select('*')
     .eq('status', 'active')
@@ -232,7 +232,7 @@ export async function getUserReservations(params: {
 export async function getAllActiveReservations(): Promise<StockReservation[]> {
   const supabase = createAdminClient()
 
-  const { data, error } = await supabase
+  const { data, error } = await (supabase as any)
     .from('active_reservations')
     .select('*')
     .order('expires_at', { ascending: true })

@@ -15,8 +15,7 @@ import {
   checkStockAvailability,
 } from '@/lib/stock/reservations'
 import { randomUUID } from 'crypto'
-import { actionLogger } from '@/lib/logger/config'
-import { logTiming, logError } from '@/lib/logger/utils'
+import { actionLogger, logTiming, logError } from '@/lib/logger/config'
 
 export async function processCheckout(
   input: ProcessCheckoutInput
@@ -109,7 +108,7 @@ export async function processCheckout(
     const stockCheck = await checkStockAvailability(
       items.map((item) => ({
         productId: item.variantId ? undefined : item.productId,
-        variantId: item.variantId,
+        variantId: item.variantId ?? undefined,
         quantity: item.quantity,
       }))
     )
@@ -135,7 +134,7 @@ export async function processCheckout(
       reservationIds = await reserveCartStock({
         items: items.map((item) => ({
           productId: item.variantId ? undefined : item.productId,
-          variantId: item.variantId,
+          variantId: item.variantId ?? undefined,
           quantity: item.quantity,
         })),
         userId: session?.user?.id,

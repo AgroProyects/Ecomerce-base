@@ -32,6 +32,12 @@ export default async function PerfilPage() {
     .eq('id', session.user.id)
     .single()
 
+  // Get user stats
+  const { count: totalOrders } = await supabase
+    .from('orders')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', session.user.id)
+
   const memberSince = user?.created_at
     ? new Date(user.created_at).toLocaleDateString('es-AR', {
         year: 'numeric',
@@ -129,12 +135,6 @@ export default async function PerfilPage() {
                     {session.user.email}
                   </p>
                 </div>
-                {user?.email_verified && (
-                  <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-xs shrink-0">
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    Verificado
-                  </Badge>
-                )}
               </div>
 
               <div className="flex items-center gap-3">
@@ -179,19 +179,11 @@ export default async function PerfilPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-lg bg-zinc-50 dark:bg-zinc-800/50 p-3 text-center">
-                  <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-                    {user?.total_orders || 0}
-                  </p>
-                  <p className="text-xs text-zinc-500 mt-0.5">Pedidos</p>
-                </div>
-                <div className="rounded-lg bg-zinc-50 dark:bg-zinc-800/50 p-3 text-center">
-                  <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-                    {user?.total_reviews || 0}
-                  </p>
-                  <p className="text-xs text-zinc-500 mt-0.5">Reseñas</p>
-                </div>
+              <div className="rounded-lg bg-zinc-50 dark:bg-zinc-800/50 p-3 text-center">
+                <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
+                  {totalOrders || 0}
+                </p>
+                <p className="text-xs text-zinc-500 mt-0.5">Pedidos Totales</p>
               </div>
             </CardContent>
           </Card>

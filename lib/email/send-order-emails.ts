@@ -20,11 +20,6 @@ export async function sendOrderConfirmationEmail({
   items,
 }: SendOrderConfirmationParams) {
   try {
-    // Preparar tracking URL si existe
-    const trackingUrl = order.tracking_number
-      ? `${process.env.NEXT_PUBLIC_APP_URL}/orders/track?number=${order.tracking_number}`
-      : undefined;
-
     // Transformar items al formato requerido por la queue
     const queueItems = items.map((item) => ({
       name: item.product_name || 'Producto',
@@ -42,7 +37,7 @@ export async function sendOrderConfirmationEmail({
       shipping: order.shipping_cost,
       discount: order.discount_amount,
       total: order.total,
-      trackingUrl,
+      trackingUrl: undefined,
     });
 
     console.log(`Order confirmation email queued for ${order.customer_email}`);
@@ -80,10 +75,6 @@ export async function sendOrderStatusUpdateEmail({
       refunded: 'Tu reembolso ha sido procesado',
     };
 
-    const trackingUrl = order.tracking_number
-      ? `${process.env.NEXT_PUBLIC_APP_URL}/orders/track?number=${order.tracking_number}`
-      : undefined;
-
     // Mapear status a los valores aceptados por la queue
     const queueStatus =
       newStatus === 'shipped' || newStatus === 'delivered' || newStatus === 'cancelled'
@@ -96,7 +87,7 @@ export async function sendOrderStatusUpdateEmail({
       orderNumber: order.order_number,
       status: queueStatus,
       statusMessage: STATUS_MESSAGES[newStatus],
-      trackingUrl,
+      trackingUrl: undefined,
     });
 
     console.log(`Order status update email queued for ${order.customer_email}`);

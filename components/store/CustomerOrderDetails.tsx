@@ -135,18 +135,18 @@ export function CustomerOrderDetails({ order, items }: CustomerOrderDetailsProps
               <div className="space-y-4">
                 {items.map((item) => (
                   <div key={item.id} className="flex gap-4">
-                    {item.product?.images?.[0] && (
+                    {item.product_image && (
                       <div className="relative h-20 w-20 flex-shrink-0 rounded-lg border overflow-hidden">
                         <Image
-                          src={item.product.images[0]}
-                          alt={item.product.name}
+                          src={item.product_image}
+                          alt={item.product_name}
                           fill
                           className="object-cover"
                         />
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-medium truncate">{item.product?.name || 'Producto'}</h3>
+                      <h3 className="font-medium truncate">{item.product_name}</h3>
                       {item.variant_name && (
                         <p className="text-sm text-muted-foreground">{item.variant_name}</p>
                       )}
@@ -274,9 +274,9 @@ export function CustomerOrderDetails({ order, items }: CustomerOrderDetailsProps
                     ID de pago: {order.mp_payment_id}
                   </p>
                 )}
-                {order.payment_status && (
+                {order.mp_status && (
                   <Badge variant="outline" className="text-xs">
-                    {order.payment_status}
+                    {order.mp_status}
                   </Badge>
                 )}
               </div>
@@ -303,18 +303,10 @@ export function CustomerOrderDetails({ order, items }: CustomerOrderDetailsProps
                     <p className="text-muted-foreground">{formatDate(order.paid_at)}</p>
                   </div>
                 )}
-                {order.shipped_at && (
-                  <div>
-                    <p className="font-medium">Enviado</p>
-                    <p className="text-muted-foreground">{formatDate(order.shipped_at)}</p>
-                  </div>
-                )}
-                {order.delivered_at && (
-                  <div>
-                    <p className="font-medium">Entregado</p>
-                    <p className="text-muted-foreground">{formatDate(order.delivered_at)}</p>
-                  </div>
-                )}
+                <div>
+                  <p className="font-medium">Última actualización</p>
+                  <p className="text-muted-foreground">{formatDate(order.updated_at)}</p>
+                </div>
               </div>
             </CardContent>
           </Card>

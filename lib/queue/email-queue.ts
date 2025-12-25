@@ -318,20 +318,5 @@ export async function closeEmailQueue() {
 }
 
 // Event listeners para debugging
-if (process.env.NODE_ENV === 'development') {
-  emailQueue.on('waiting', (job) => {
-    console.log(`⏳ Job ${job.id} is waiting`)
-  })
-
-  emailQueue.on('active', (job) => {
-    console.log(`🔄 Job ${job.id} is active`)
-  })
-
-  emailQueue.on('completed', (job) => {
-    console.log(`✅ Job ${job.id} completed`)
-  })
-
-  emailQueue.on('failed', (job, err) => {
-    console.error(`❌ Job ${job?.id} failed:`, err.message)
-  })
-}
+// Nota: En BullMQ v5+, los eventos 'completed' y 'failed' solo están disponibles en Worker, no en Queue
+// Los event listeners se deben configurar en email-worker.ts

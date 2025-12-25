@@ -5,7 +5,7 @@ import { ratelimit, getIdentifier } from '@/lib/middleware/rate-limit'
 export async function POST(request: NextRequest) {
   try {
     // 1. Aplicar rate limiting
-    const identifier = getIdentifier(request)
+    const identifier = await getIdentifier(request)
     const { success, limit, reset, remaining } = await ratelimit.coupon.limit(identifier)
 
     if (!success) {

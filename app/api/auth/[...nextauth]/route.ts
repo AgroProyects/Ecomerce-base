@@ -7,7 +7,7 @@ const { GET: AuthGET, POST: AuthPOST } = handlers
 // Wrapper para GET con rate limiting
 export async function GET(request: NextRequest) {
   // Aplicar rate limiting solo para autenticación
-  const identifier = getIdentifier(request)
+  const identifier = await getIdentifier(request)
   const { success, limit, reset, remaining } = await ratelimit.auth.limit(identifier)
 
   if (!success) {
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 // Wrapper para POST con rate limiting
 export async function POST(request: NextRequest) {
   // Aplicar rate limiting para autenticación
-  const identifier = getIdentifier(request)
+  const identifier = await getIdentifier(request)
   const { success, limit, reset, remaining } = await ratelimit.auth.limit(identifier)
 
   if (!success) {

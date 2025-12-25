@@ -31,7 +31,6 @@ export const mockSupabaseClient = {
     filter: jest.fn().mockReturnThis(),
     order: jest.fn().mockReturnThis(),
     limit: jest.fn().mockReturnThis(),
-    range: jest.fn().mockReturnThis(),
     single: jest.fn().mockResolvedValue({ data: {}, error: null }),
     maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
     then: jest.fn((resolve) => resolve({ data: [], error: null })),
@@ -159,7 +158,7 @@ export const resetSupabaseMocks = () => {
     then: jest.fn((resolve) => resolve({ data: [], error: null })),
   }))
 
-  mockSupabaseClient.rpc = jest.fn(() =>
+  mockSupabaseClient.rpc = jest.fn((functionName: string, params?: any) =>
     Promise.resolve({ data: null, error: null })
   )
 }

@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     const supabase = createAdminClient()
 
     // Find the verification token
-    const { data: tokenData, error: tokenError } = await supabase
+    const { data: tokenData, error: tokenError } = await (supabase as any)
       .from('email_verification_tokens')
       .select('*')
       .eq('token', token)
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Mark token as verified
-    const { error: updateTokenError } = await supabase
+    const { error: updateTokenError } = await (supabase as any)
       .from('email_verification_tokens')
       .update({
         verified_at: new Date().toISOString(),
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update customer record if exists
-    const { error: customerError } = await supabase
+    const { error: customerError } = await (supabase as any)
       .from('customers')
       .update({
         email_verified: true,

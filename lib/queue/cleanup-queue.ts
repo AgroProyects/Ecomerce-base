@@ -100,12 +100,5 @@ export async function closeCleanupQueue() {
 }
 
 // Event listeners para debugging
-if (process.env.NODE_ENV === 'development') {
-  cleanupQueue.on('completed', (job) => {
-    console.log(`✅ Cleanup job ${job.name} completed`)
-  })
-
-  cleanupQueue.on('failed', (job, err) => {
-    console.error(`❌ Cleanup job ${job?.name} failed:`, err.message)
-  })
-}
+// Nota: En BullMQ v5+, los eventos 'completed' y 'failed' solo están disponibles en Worker, no en Queue
+// Los event listeners se deben configurar en cleanup-worker.ts

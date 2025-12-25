@@ -7,6 +7,26 @@ const nextConfig: NextConfig = {
     root: __dirname,
   },
 
+  // Marcar pino y thread-stream como externos para evitar bundling
+  serverExternalPackages: ['pino', 'thread-stream'],
+
+  // Configuración de webpack
+  webpack: (config, { isServer }) => {
+    // Excluir archivos de test de node_modules del bundle
+    config.module.rules.push({
+      test: /\.test\.(js|ts|jsx|tsx)$/,
+      use: 'ignore-loader',
+    });
+
+    // Excluir directorios de test completos
+    config.module.rules.push({
+      test: /[\\/]node_modules[\\/].*[\\/]test[\\/]/,
+      use: 'ignore-loader',
+    });
+
+    return config;
+  },
+
   images: {
     remotePatterns: [
       {
@@ -68,20 +88,6 @@ export default withSentryConfig(nextConfig, {
   // side errors will fail.
   tunnelRoute: "/monitoring",
 
-  // Deshabilitar source maps en desarrollo para evitar errores
-  hideSourceMaps: false,
-
-  webpack: {
-    // Enables automatic instrumentation of Vercel Cron Monitors. (Does not yet work with App Router route handlers.)
-    // See the following for more information:
-    // https://docs.sentry.io/product/crons/
-    // https://vercel.com/docs/cron-jobs
-    automaticVercelMonitors: true,
-
-    // Tree-shaking options for reducing bundle size
-    treeshake: {
-      // Automatically tree-shake Sentry logger statements to reduce bundle size
-      removeDebugLogging: true,
-    },
-  },
+  // Habilitar monitoreo automático de Vercel Crons
+  automaticVercelMonitors: true,
 });

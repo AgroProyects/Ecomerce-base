@@ -11,7 +11,7 @@ import * as Sentry from '@sentry/nextjs'
 export async function POST(request: NextRequest) {
   try {
     // 1. Aplicar rate limiting
-    const identifier = getIdentifier(request)
+    const identifier = await getIdentifier(request)
     const { success, limit, reset, remaining } = await ratelimit.checkout.limit(identifier)
 
     if (!success) {
@@ -82,8 +82,8 @@ export async function POST(request: NextRequest) {
       customer: {
         name: order.customer_name,
         email: order.customer_email,
-        phone: order.customer_phone,
-        address: order.shipping_address,
+        phone: order.customer_phone ?? '',
+        address: order.shipping_address as any,
         paymentMethod: 'mercadopago',
       },
       token,
@@ -97,11 +97,11 @@ export async function POST(request: NextRequest) {
 
     // Actualizar la orden con el ID del pago
     const orderUpdate: {
-      mp_payment_id?: number
-      status?: string
+      mp_payment_id?: string
+      status?: 'pending' | 'pending_payment' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
       payment_status?: string
     } = {
-      mp_payment_id: paymentResult.id,
+      mp_payment_id: paymentResult.id.toString(),
     }
 
     // Actualizar estado según el resultado
