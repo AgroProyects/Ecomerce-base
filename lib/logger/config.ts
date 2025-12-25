@@ -21,18 +21,18 @@ export const logger = pino({
   // Configuración base
   name: 'ecommerce-base',
 
-  // Formateo para desarrollo (pretty print)
-  ...(isDevelopment && {
-    transport: {
-      target: 'pino-pretty',
-      options: {
-        colorize: true,
-        translateTime: 'HH:MM:ss Z',
-        ignore: 'pid,hostname',
-        singleLine: false,
-      },
-    },
-  }),
+  // Formateo para desarrollo - deshabilitado temporalmente por problemas con workers
+  // ...(isDevelopment && {
+  //   transport: {
+  //     target: 'pino-pretty',
+  //     options: {
+  //       colorize: true,
+  //       translateTime: 'HH:MM:ss Z',
+  //       ignore: 'pid,hostname',
+  //       singleLine: false,
+  //     },
+  //   },
+  // }),
 
   // Configuración para producción (JSON estructurado)
   ...(isProduction && {

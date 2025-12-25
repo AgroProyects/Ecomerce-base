@@ -291,7 +291,7 @@ export default function AdminShippingPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="overflow-hidden border-0 shadow-sm">
           <CardContent className="p-0">
-            <div className="flex items-center gap-4 p-4">
+            <div key="content" className="flex items-center gap-4 p-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/30">
                 <MapPin className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               </div>
@@ -300,13 +300,13 @@ export default function AdminShippingPage() {
                 <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">{stats.total}</p>
               </div>
             </div>
-            <div className="h-1 bg-gradient-to-r from-blue-500 to-indigo-500" />
+            <div key="gradient" className="h-1 bg-gradient-to-r from-blue-500 to-indigo-500" />
           </CardContent>
         </Card>
 
         <Card className="overflow-hidden border-0 shadow-sm">
           <CardContent className="p-0">
-            <div className="flex items-center gap-4 p-4">
+            <div key="content" className="flex items-center gap-4 p-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/30">
                 <Check className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
               </div>
@@ -315,13 +315,13 @@ export default function AdminShippingPage() {
                 <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">{stats.active}</p>
               </div>
             </div>
-            <div className="h-1 bg-gradient-to-r from-emerald-500 to-green-500" />
+            <div key="gradient" className="h-1 bg-gradient-to-r from-emerald-500 to-green-500" />
           </CardContent>
         </Card>
 
         <Card className="overflow-hidden border-0 shadow-sm">
           <CardContent className="p-0">
-            <div className="flex items-center gap-4 p-4">
+            <div key="content" className="flex items-center gap-4 p-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 dark:bg-amber-900/30">
                 <DollarSign className="h-6 w-6 text-amber-600 dark:text-amber-400" />
               </div>
@@ -330,13 +330,13 @@ export default function AdminShippingPage() {
                 <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">{formatPrice(stats.avgCost)}</p>
               </div>
             </div>
-            <div className="h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
+            <div key="gradient" className="h-1 bg-gradient-to-r from-amber-500 to-orange-500" />
           </CardContent>
         </Card>
 
         <Card className="overflow-hidden border-0 shadow-sm">
           <CardContent className="p-0">
-            <div className="flex items-center gap-4 p-4">
+            <div key="content" className="flex items-center gap-4 p-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-100 dark:bg-purple-900/30">
                 <Gift className="h-6 w-6 text-purple-600 dark:text-purple-400" />
               </div>
@@ -345,7 +345,7 @@ export default function AdminShippingPage() {
                 <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">{stats.withFreeShipping}</p>
               </div>
             </div>
-            <div className="h-1 bg-gradient-to-r from-purple-500 to-pink-500" />
+            <div key="gradient" className="h-1 bg-gradient-to-r from-purple-500 to-pink-500" />
           </CardContent>
         </Card>
       </div>
